@@ -1,0 +1,154 @@
+.story-table-section {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Toolbar */
+.story-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--dimmer);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: 2.2rem !important;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--dim);
+}
+
+.filter-select {
+  width: auto;
+  min-width: 140px;
+  cursor: pointer;
+}
+
+.story-count-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--dimmer);
+  margin-left: auto;
+}
+
+/* Table */
+.table-wrapper {
+  overflow-x: auto;
+  border: var(--border-thick);
+  box-shadow: var(--shadow);
+}
+
+.story-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.story-table thead {
+  background: var(--bg2);
+  border-bottom: 3px solid var(--border);
+}
+
+.story-table th {
+  text-align: left;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.story-table td {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  vertical-align: middle;
+}
+
+.story-row {
+  background: var(--panel);
+  transition: var(--transition);
+  animation: slideUp 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+.story-row:hover {
+  background: var(--panel-hover);
+}
+
+.story-row:nth-child(even) {
+  background: rgba(45, 45, 45, 0.6);
+}
+
+.story-row:nth-child(even):hover {
+  background: var(--panel-hover);
+}
+
+.row-num {
+  color: var(--dimmer);
+  font-size: 0.75rem;
+}
+
+.row-title {
+  font-weight: 600;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-category {
+  color: var(--accent2);
+  font-size: 0.8rem;
+}
+
+.row-age {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.empty-row {
+  text-align: center;
+  padding: 2rem !important;
+  color: var(--dimmer);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .story-table th:nth-child(3),
+  .story-table td:nth-child(3),
+  .story-table th:nth-child(4),
+  .story-table td:nth-child(4),
+  .story-table th:nth-child(6),
+  .story-table td:nth-child(6) {
+    display: none;
+  }
+}

@@ -1,0 +1,45 @@
+.bar-charts {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.bar-chart-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar-chart-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.bar-dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  flex-shrink: 0;
+}
+
+.bar-chart-container {
+  height: 180px;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .bar-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}

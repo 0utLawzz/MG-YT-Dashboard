@@ -1,0 +1,121 @@
+.upload-section {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.section-desc {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  cursor: pointer;
+  border-style: dashed;
+  transition: var(--transition);
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent2);
+  background: rgba(0, 229, 255, 0.05);
+}
+
+.upload-zone.drag-over {
+  border-color: var(--accent3);
+  background: rgba(255, 234, 0, 0.08);
+  animation: borderGlow 1s infinite;
+}
+
+.upload-zone.has-file {
+  border-color: var(--accent4);
+  border-style: solid;
+}
+
+.upload-icon-wrap {
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--accent2);
+  color: var(--accent2);
+  margin-bottom: 0.5rem;
+}
+
+.upload-icon-wrap.thumb {
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+
+.upload-done-icon {
+  color: var(--accent4);
+}
+
+.upload-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: var(--dimmer);
+  font-family: var(--font-mono);
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 80%;
+  height: 20px;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent4));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.thumb-fill {
+  background: linear-gradient(90deg, var(--accent3), var(--accent4));
+}
+
+.progress-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #000;
+}
+
+@media (max-width: 768px) {
+  .upload-grid {
+    grid-template-columns: 1fr;
+  }
+}

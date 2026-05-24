@@ -1,0 +1,72 @@
+.tabs-bar {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: var(--border-thick);
+  padding: 0 1rem;
+  overflow-x: auto;
+  gap: 0;
+}
+
+.tab-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  background: transparent;
+  color: var(--dim);
+  border: none;
+  border-right: 2px solid rgba(255,255,255,0.1);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.tab-btn:first-child {
+  border-left: 2px solid rgba(255,255,255,0.1);
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+}
+
+.tab-btn.active {
+  color: var(--accent3);
+  background: rgba(255,234,0,0.08);
+}
+
+.tab-icon {
+  font-size: 1rem;
+}
+
+.tab-label {
+  font-size: 0.78rem;
+}
+
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent3);
+  box-shadow: 0 0 10px var(--accent3);
+}
+
+@media (max-width: 768px) {
+  .tab-btn {
+    padding: 0.7rem 1rem;
+  }
+  .tab-label {
+    display: none;
+  }
+  .tab-icon {
+    font-size: 1.2rem;
+  }
+}
