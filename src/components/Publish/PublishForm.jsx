@@ -1,242 +1,267 @@
-import { useState } from 'react';
-import { Video, Send, Lock, Unlock, Upload, AlertTriangle, Calendar, Clock } from 'lucide-react';
-import './PublishForm.css';
+// ============================================
+// src/components/Publish/PublishForm.jsx
+// Approved stories → Schedule ya Publish
+// YouTube link Sheet mein save hoti hai
+// No OAuth — manual YouTube link paste karo
+// ============================================
 
-export default function PublishForm({ stories, onPublish }) {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [selectedStory, setSelectedStory] = useState('');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
-  const [visibility, setVisibility] = useState('public');
-  const [scheduleDate, setScheduleDate] = useState('');
-  const [scheduleTime, setScheduleTime] = useState('');
-  const [publishing, setPublishing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [publishResult, setPublishResult] = useState(null);
+import { useState } from "react";
+import { Send, Calendar, Clock, ExternalLink, CheckCircle } from "lucide-react";
+import "./PublishForm.css";
 
-  const approved = stories.filter(s => s.status === 'approved');
+export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) {
+  const [selectedId, setSelectedId] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [ytLink, setYtLink] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+  const [mode, setMode] = useState("schedule"); // "schedule" ya "publish"
 
-  const handleAuth = () => {
-    // Simulate OAuth flow
-    setAuthenticated(true);
-  };
+  // Sirf approved stories
+  const approved = stories.filter((s) => s.dashStatus === "approved");
+  const scheduled = stories.filter((s) => s.dashStatus === "scheduled");
+  const published = stories.filter((s) => s.dashStatus === "published");
+
+  const selectedStory = stories.find((s) => s.id === selectedId);
 
   const handleSelectStory = (id) => {
-    setSelectedStory(id);
-    const story = stories.find(s => s.id === Number(id));
+    setSelectedId(id);
+    const story = stories.find((s) => s.id === id);
     if (story) {
-      setTitle(`${story.title} | Bright Little Stories`);
-      setDescription(`A magical bedtime story for kids aged ${story.ageGroup || '2-6'}. Follow along with "${story.title}" in this ${story.category?.toLowerCase() || 'wonderful'} adventure!\n\n#BrightLittleStories #BedtimeStories #KidsContent`);
-      setTags(`bedtime stories, kids, ${story.category?.toLowerCase() || 'stories'}, ${story.ageGroup || '2-6'} years, bright little stories`);
+      setYtLink(story.ytLink || "");
+      setScheduleDate(story.schedule ? story.schedule.split("T")[0] : "");
+      setScheduleTime(story.schedule ? story.schedule.split("T")[1]?.slice(0, 5) : "");
+      setDone(false);
     }
   };
 
-  const isScheduled = scheduleDate && scheduleTime;
+  const handleSchedule = async () => {
+    if (!selectedId || !scheduleDate || !scheduleTime) return;
+    setSaving(true);
+    try {
+      const dateTime = `${scheduleDate}T${scheduleTime}`;
+      await onSchedule(selectedId, dateTime);
+      setDone(true);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  const handlePublish = () => {
-    setPublishing(true);
-    setProgress(0);
-    setPublishResult(null);
-    let p = 0;
-    const interval = setInterval(() => {
-      p += Math.random() * 8;
-      if (p >= 100) {
-        p = 100;
-        clearInterval(interval);
-
-        const story = stories.find(s => s.id === Number(selectedStory));
-        if (isScheduled) {
-          const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
-          onPublish?.(story, { status: 'scheduled', scheduledAt });
-          setPublishResult({ type: 'scheduled', date: scheduleDate, time: scheduleTime });
-        } else {
-          onPublish?.(story, { status: 'published', publishedAt: new Date().toISOString() });
-          setPublishResult({ type: 'published' });
-        }
-
-        setTimeout(() => setPublishing(false), 1000);
-      }
-      setProgress(Math.round(p));
-    }, 300);
+  const handlePublish = async () => {
+    if (!selectedId) return;
+    setSaving(true);
+    try {
+      await onPublish(selectedId, ytLink);
+      setDone(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <section className="publish-section animate-fade-in" id="panel-publish" role="tabpanel" aria-labelledby="tab-publish">
-      <h2 className="section-title">Publish to YouTube</h2>
+    <section
+      className="publish-section animate-fade-in"
+      id="panel-publish"
+      role="tabpanel"
+      aria-labelledby="tab-publish"
+    >
+      <h2 className="section-title">🚀 Publish</h2>
+      <p className="section-desc">
+        Approved stories schedule karein ya published mark karein YouTube link ke saath.
+      </p>
 
-      {/* Auth Section */}
-      <div className="publish-auth panel">
-        <div className="auth-header">
-          <Video size={24} className="yt-icon" />
-          <div>
-            <h3>YouTube Authentication</h3>
-            <p className="auth-status">
-              {authenticated ? (
-                <><Unlock size={14} className="auth-ok" /> Connected</>
-              ) : (
-                <><Lock size={14} className="auth-locked" /> Not connected</>
-              )}
-            </p>
-          </div>
+      {/* Stats Row */}
+      <div className="publish-stats">
+        <div className="pub-stat panel">
+          <span className="pub-stat-num" style={{ color: "var(--accent4)" }}>{approved.length}</span>
+          <span className="pub-stat-label">Approved</span>
         </div>
-        {!authenticated && (
-          <button className="btn btn-primary" onClick={handleAuth} id="btn-yt-auth">
-            <Video size={16} /> Sign in with Google
-          </button>
-        )}
+        <div className="pub-stat panel">
+          <span className="pub-stat-num" style={{ color: "var(--accent3)" }}>{scheduled.length}</span>
+          <span className="pub-stat-label">Scheduled</span>
+        </div>
+        <div className="pub-stat panel">
+          <span className="pub-stat-num" style={{ color: "var(--accent5)" }}>{published.length}</span>
+          <span className="pub-stat-label">Published</span>
+        </div>
       </div>
 
-      {authenticated && (
-        <div className="publish-form panel">
-          <h3 className="form-title">Upload Details</h3>
+      {approved.length === 0 && (
+        <div className="publish-empty panel">
+          <p>⚠️ Koi approved story nahi hai. Pehle Review tab se approve karein.</p>
+        </div>
+      )}
 
-          {/* Story Selector */}
+      {approved.length > 0 && (
+        <div className="publish-form panel">
+          {/* Story Select */}
           <div className="form-group">
-            <label className="form-label" htmlFor="publish-story-select">Select Story</label>
+            <label className="form-label" htmlFor="pub-story-select">
+              Approved Story Select Karein
+            </label>
             <select
               className="input"
-              id="publish-story-select"
-              value={selectedStory}
-              onChange={e => handleSelectStory(e.target.value)}
+              id="pub-story-select"
+              value={selectedId}
+              onChange={(e) => handleSelectStory(e.target.value)}
             >
-              <option value="">Choose a story…</option>
-              {approved.map(s => (
-                <option key={s.id} value={s.id}>{s.title}</option>
+              <option value="">-- Story chunein --</option>
+              {approved.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.id} — {s.title}
+                </option>
               ))}
             </select>
-            {approved.length === 0 && (
-              <p className="form-hint warning">
-                <AlertTriangle size={13} /> No approved stories. Pass a story through Review first.
-              </p>
-            )}
           </div>
 
-          {/* Title */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="publish-title">Video Title</label>
-            <input
-              className="input"
-              id="publish-title"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="Enter video title…"
-            />
-          </div>
-
-          {/* Description */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="publish-desc">Description</label>
-            <textarea
-              className="input publish-textarea"
-              id="publish-desc"
-              rows={5}
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Video description…"
-            />
-          </div>
-
-          {/* Tags */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="publish-tags">Tags</label>
-            <input
-              className="input"
-              id="publish-tags"
-              value={tags}
-              onChange={e => setTags(e.target.value)}
-              placeholder="Comma-separated tags…"
-            />
-          </div>
-
-          {/* Visibility */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="publish-visibility">Visibility</label>
-            <select
-              className="input"
-              id="publish-visibility"
-              value={visibility}
-              onChange={e => setVisibility(e.target.value)}
-            >
-              <option value="public">Public</option>
-              <option value="unlisted">Unlisted</option>
-              <option value="private">Private</option>
-            </select>
-          </div>
-
-          {/* Schedule Section */}
-          <div className="schedule-section">
-            <h4 className="schedule-heading">
-              <Calendar size={14} /> Schedule (Optional)
-            </h4>
-            <p className="schedule-hint">Set a date and time to schedule. Leave empty to publish immediately (Publish Intent).</p>
-            <div className="schedule-fields">
-              <div className="form-group">
-                <label className="form-label" htmlFor="publish-date">Date</label>
-                <input
-                  className="input"
-                  id="publish-date"
-                  type="date"
-                  value={scheduleDate}
-                  onChange={e => setScheduleDate(e.target.value)}
-                />
+          {selectedStory && (
+            <>
+              {/* Story Info */}
+              <div className="pub-story-info">
+                <h3 className="pub-story-title">{selectedStory.title}</h3>
+                <p className="pub-story-meta">
+                  📁 {selectedStory.category} | 🏷️ {selectedStory.hashtags}
+                </p>
+                {selectedStory.videoLink && (
+                  <a href={selectedStory.videoLink} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
+                    <ExternalLink size={13} /> Video Dekhen
+                  </a>
+                )}
               </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="publish-time">Time</label>
-                <input
-                  className="input"
-                  id="publish-time"
-                  type="time"
-                  value={scheduleTime}
-                  onChange={e => setScheduleTime(e.target.value)}
-                />
+
+              {/* Mode Toggle */}
+              <div className="pub-mode-toggle">
+                <button
+                  className={`btn btn-sm ${mode === "schedule" ? "btn-warning" : ""}`}
+                  onClick={() => setMode("schedule")}
+                >
+                  <Calendar size={13} /> Schedule
+                </button>
+                <button
+                  className={`btn btn-sm ${mode === "publish" ? "btn-primary" : ""}`}
+                  onClick={() => setMode("publish")}
+                >
+                  <Send size={13} /> Mark Published
+                </button>
               </div>
-            </div>
-          </div>
 
-          {/* Publish Button */}
-          <button
-            className={`btn ${isScheduled ? 'btn-warning' : 'btn-primary'} publish-btn`}
-            onClick={handlePublish}
-            disabled={!selectedStory || publishing}
-            id="btn-publish"
-          >
-            {publishing ? (
-              <><Upload size={16} className="spin" /> Uploading… {progress}%</>
-            ) : isScheduled ? (
-              <><Clock size={16} /> Schedule for {scheduleDate} @ {scheduleTime}</>
-            ) : (
-              <><Send size={16} /> Publish Now (Instant)</>
-            )}
-          </button>
-
-          {/* Upload Progress */}
-          {publishing && (
-            <div className="publish-progress">
-              <div className="progress-bar">
-                <div className="progress-fill publish-fill" style={{ width: `${progress}%` }}>
-                  <span className="progress-text">{progress}%</span>
+              {/* Schedule Mode */}
+              {mode === "schedule" && (
+                <div className="pub-schedule-box">
+                  <h4 className="pub-box-title">
+                    <Calendar size={14} /> Schedule Date & Time
+                  </h4>
+                  <p className="form-hint" style={{ marginBottom: "0.75rem" }}>
+                    YouTube pe manually schedule karein, phir woh time yahan save karein record ke liye.
+                  </p>
+                  <div className="schedule-fields">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="pub-date">Date</label>
+                      <input
+                        className="input"
+                        type="date"
+                        id="pub-date"
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="pub-time">Time</label>
+                      <input
+                        className="input"
+                        type="time"
+                        id="pub-time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-warning"
+                    onClick={handleSchedule}
+                    disabled={saving || !scheduleDate || !scheduleTime}
+                  >
+                    <Clock size={14} />
+                    {saving ? "Saving…" : done ? "✅ Scheduled!" : "📅 Schedule Save Karein"}
+                  </button>
                 </div>
-              </div>
-              <p className="progress-stage mono">
-                {progress < 30 ? 'Uploading video…' :
-                 progress < 60 ? 'Processing…' :
-                 progress < 90 ? 'Setting metadata…' :
-                 'Finalizing…'}
-              </p>
-            </div>
-          )}
+              )}
 
-          {/* Result Banner */}
-          {publishResult && (
-            <div className={`publish-result panel ${publishResult.type}`}>
-              {publishResult.type === 'scheduled' ? (
-                <><Calendar size={18} /> Story scheduled for <strong>{publishResult.date}</strong> at <strong>{publishResult.time}</strong></>
-              ) : (
-                <><Send size={18} /> Story published successfully! 🎉</>
+              {/* Publish Mode */}
+              {mode === "publish" && (
+                <div className="pub-publish-box">
+                  <h4 className="pub-box-title">
+                    <Send size={14} /> YouTube Link + Mark Published
+                  </h4>
+                  <p className="form-hint" style={{ marginBottom: "0.75rem" }}>
+                    YouTube pe manually upload karein, phir link yahan paste karein.
+                  </p>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="yt-link">YouTube Video Link</label>
+                    <input
+                      className="input"
+                      id="yt-link"
+                      value={ytLink}
+                      onChange={(e) => setYtLink(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=xxxxxxx"
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handlePublish}
+                    disabled={saving}
+                  >
+                    <Send size={14} />
+                    {saving ? "Saving…" : done ? "✅ Published!" : "🚀 Mark as Published"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Scheduled List */}
+      {scheduled.length > 0 && (
+        <div className="pub-list-section">
+          <h3 className="section-title" style={{ fontSize: "0.95rem" }}>
+            📅 Scheduled Stories
+          </h3>
+          {scheduled.map((s) => (
+            <div key={s.id} className="pub-list-item panel">
+              <span className="badge badge-scheduled">SCHEDULED</span>
+              <span className="pub-item-title">{s.title}</span>
+              <span className="pub-item-date mono">
+                <Clock size={12} /> {s.schedule || "Time set nahi"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Published List */}
+      {published.length > 0 && (
+        <div className="pub-list-section">
+          <h3 className="section-title" style={{ fontSize: "0.95rem" }}>
+            ✅ Published Stories
+          </h3>
+          {published.map((s) => (
+            <div key={s.id} className="pub-list-item panel">
+              <span className="badge badge-published">PUBLISHED</span>
+              <span className="pub-item-title">{s.title}</span>
+              {s.ytLink && (
+                <a
+                  href={s.ytLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-sm btn-icon"
+                >
+                  <ExternalLink size={13} />
+                </a>
               )}
             </div>
-          )}
+          ))}
         </div>
       )}
     </section>

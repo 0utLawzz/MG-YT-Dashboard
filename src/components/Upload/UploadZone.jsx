@@ -1,250 +1,288 @@
-import { useState, useRef } from 'react';
-import { Upload, Film, Image, CheckCircle, ChevronDown, AlertTriangle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import './UploadZone.css';
+// ============================================
+// src/components/Upload/UploadZone.jsx
+// Supabase REMOVED — Google Drive links paste karo
+// Video + Thumbnail Drive link → Sheet mein save
+// ============================================
 
-export default function UploadZone({ stories, onStoryUpdate }) {
-  const [selectedStoryId, setSelectedStoryId] = useState('');
-  const [dragOverType, setDragOverType] = useState(null);
-  const [videoFile, setVideoFile] = useState(null);
-  const [thumbFile, setThumbFile] = useState(null);
-  const [videoProgress, setVideoProgress] = useState(0);
-  const [thumbProgress, setThumbProgress] = useState(0);
-  const [videoUrl, setVideoUrl] = useState(null);
-  const [thumbUrl, setThumbUrl] = useState(null);
-  const videoRef = useRef(null);
-  const thumbRef = useRef(null);
+import { useState, useEffect } from "react";
+import { Link, CheckCircle, AlertTriangle, ExternalLink, ArrowRight } from "lucide-react";
+import "./UploadZone.css";
 
-  const draftStories = (stories || []).filter(s => s.status === 'draft');
-  const selectedStory = stories?.find(s => String(s.id) === String(selectedStoryId));
+export default function UploadZone({
+  story,
+  stories,
+  onSelectStory,
+  onUpdate,
+  onMoveToUploaded,
+  onMoveToReview,
+}) {
+  const [videoLink, setVideoLink] = useState("");
+  const [thumbLink, setThumbLink] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
-  const uploadFile = async (file, type) => {
-    const setProgress = type === 'video' ? setVideoProgress : setThumbProgress;
-    setProgress(5);
-
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${selectedStoryId}_${type}_${Date.now()}.${fileExt}`;
-    const filePath = `${type}s/${fileName}`;
-
-    // Simulate progress since supabase-js doesn't expose progress
-    const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(prev + Math.random() * 15, 85));
-    }, 400);
-
-    const { data, error } = await supabase.storage
-      .from('story-assets')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    clearInterval(progressInterval);
-
-    if (error) {
-      console.error('Upload error:', error);
-      setProgress(0);
-      return null;
+  // Story change hone par fields update karo
+  useEffect(() => {
+    if (story) {
+      setVideoLink(story.videoLink || "");
+      setThumbLink(story.thumbLink || "");
+      setSaved(false);
+      setError("");
     }
+  }, [story?.id]);
 
-    setProgress(100);
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('story-assets')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
+  const handleSelectStory = (id) => {
+    const found = stories.find((s) => s.id === id);
+    if (found) onSelectStory(found);
   };
 
-  const handleDrop = (type) => (e) => {
-    e.preventDefault();
-    setDragOverType(null);
-    const file = e.dataTransfer?.files?.[0] || e.target?.files?.[0];
-    if (!file || !selectedStoryId) return;
+  // Drive link validate karo — file ID hona chahiye
+  const isValidDriveLink = (link) => {
+    if (!link) return false;
+    return (
+      link.includes("drive.google.com") ||
+      link.includes("docs.google.com") ||
+      /^[\w-]{25,}$/.test(link) // sirf file ID paste kiya
+    );
+  };
 
-    if (type === 'video') {
-      setVideoFile(file);
-      uploadFile(file, 'video').then(url => {
-        if (url) {
-          setVideoUrl(url);
-          // Update story with video URL
-          onStoryUpdate?.(Number(selectedStoryId), { videoUrl: url });
-          // Check if both uploads are done
-          if (thumbUrl || thumbFile) {
-            autoMarkComplete(url, thumbUrl);
-          }
-        }
+  // Save both links
+  const handleSave = async () => {
+    setError("");
+
+    if (!videoLink && !thumbLink) {
+      setError("Kam az kam ek link daalen");
+      return;
+    }
+
+    if (videoLink && !isValidDriveLink(videoLink)) {
+      setError("Video Drive link valid nahi hai");
+      return;
+    }
+
+    if (thumbLink && !isValidDriveLink(thumbLink)) {
+      setError("Thumbnail Drive link valid nahi hai");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Links save karo Sheet mein
+      await onUpdate(story.id, {
+        videoLink: videoLink,
+        thumbLink: thumbLink,
       });
-    } else {
-      setThumbFile(file);
-      uploadFile(file, 'thumb').then(url => {
-        if (url) {
-          setThumbUrl(url);
-          // Update story with thumbnail URL
-          onStoryUpdate?.(Number(selectedStoryId), { thumbnail: url });
-          // Check if both uploads are done
-          if (videoUrl || videoFile) {
-            autoMarkComplete(videoUrl, url);
-          }
-        }
-      });
+
+      // Agar dono links hain → status "uploaded"
+      if (videoLink && thumbLink) {
+        await onMoveToUploaded(story.id);
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError("Save fail: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const autoMarkComplete = (vUrl, tUrl) => {
-    if (vUrl && tUrl && selectedStoryId) {
-      // Both files uploaded — mark story as complete (held for review)
-      onStoryUpdate?.(Number(selectedStoryId), { status: 'complete' });
+  // Review ke liye bhejو
+  const handleSendToReview = async () => {
+    setSaving(true);
+    try {
+      await onMoveToReview(story.id);
+      setSaved(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleStorySelect = (id) => {
-    setSelectedStoryId(id);
-    // Reset uploads when story changes
-    setVideoFile(null);
-    setThumbFile(null);
-    setVideoProgress(0);
-    setThumbProgress(0);
-    setVideoUrl(null);
-    setThumbUrl(null);
-
-    // Pre-populate if story already has uploads
-    const story = stories?.find(s => String(s.id) === String(id));
-    if (story?.videoUrl) setVideoUrl(story.videoUrl);
-    if (story?.thumbnail) setThumbUrl(story.thumbnail);
-  };
-
-  const bothUploaded = (videoFile || videoUrl) && (thumbFile || thumbUrl);
+  const bothLinked = videoLink && thumbLink;
+  const isUploaded = story?.dashStatus === "uploaded" || story?.dashStatus === "review";
 
   return (
-    <section className="upload-section animate-fade-in" id="panel-upload" role="tabpanel" aria-labelledby="tab-upload">
-      <h2 className="section-title">Upload Assets</h2>
-      <p className="section-desc">Select a story, then upload its video and thumbnail. When both are uploaded, the story is automatically marked as <strong>Complete</strong> and held for review.</p>
+    <section
+      className="upload-section animate-fade-in"
+      id="panel-upload"
+      role="tabpanel"
+      aria-labelledby="tab-upload"
+    >
+      <h2 className="section-title">⬆️ Upload Assets</h2>
+      <p className="section-desc">
+        Google Drive mein video/thumbnail upload karein. Wahan se{" "}
+        <strong>Share → Copy Link</strong> karein aur yahan paste karein.
+      </p>
+
+      {/* Drive Upload Guide */}
+      <div className="upload-guide panel">
+        <h4 className="guide-title">📋 Drive Upload Kaise Karein?</h4>
+        <ol className="guide-steps">
+          <li>Google Drive kholen → <strong>New → File Upload</strong></li>
+          <li>Video ya Thumbnail upload karein</li>
+          <li>File pe right-click → <strong>Share → Anyone with link → Copy</strong></li>
+          <li>Woh link yahan paste karein</li>
+        </ol>
+      </div>
 
       {/* Story Selector */}
       <div className="upload-story-selector panel">
-        <div className="form-group">
-          <label className="form-label" htmlFor="upload-story-select">
-            <ChevronDown size={14} /> Select Story to Upload For
-          </label>
-          <select
-            className="input"
-            id="upload-story-select"
-            value={selectedStoryId}
-            onChange={e => handleStorySelect(e.target.value)}
-          >
-            <option value="">Choose a draft story…</option>
-            {draftStories.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.title} — {s.category || 'No Category'}
-              </option>
-            ))}
-          </select>
-          {draftStories.length === 0 && (
-            <p className="form-hint warning">
-              <AlertTriangle size={13} /> No draft stories available. Add a story first.
-            </p>
-          )}
-        </div>
-
-        {selectedStory && (
-          <div className="upload-story-info">
-            <span className="badge badge-draft">DRAFT</span>
-            <span className="upload-story-title">{selectedStory.title}</span>
-            {selectedStory.category && <span className="upload-story-cat">📁 {selectedStory.category}</span>}
-          </div>
-        )}
+        <label className="form-label" htmlFor="upload-story-select">
+          Story Select Karein
+        </label>
+        <select
+          className="input"
+          id="upload-story-select"
+          value={story?.id || ""}
+          onChange={(e) => handleSelectStory(e.target.value)}
+        >
+          <option value="">-- Story chunein --</option>
+          {stories.map((s) => (
+            <option key={s.id} value={s.id}>
+              [{s.dashStatus?.toUpperCase()}] {s.id} — {s.title}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Upload Zones */}
-      {selectedStoryId ? (
-        <div className="upload-grid">
-          {/* Video Upload */}
-          <div
-            className={`upload-zone panel ${dragOverType === 'video' ? 'drag-over' : ''} ${videoFile || videoUrl ? 'has-file' : ''}`}
-            onDragOver={(e) => { e.preventDefault(); setDragOverType('video'); }}
-            onDragLeave={() => setDragOverType(null)}
-            onDrop={handleDrop('video')}
-            onClick={() => videoRef.current?.click()}
-            role="button"
-            tabIndex={0}
-            aria-label="Upload video file"
-            id="upload-video-zone"
-          >
-            <input
-              ref={videoRef}
-              type="file"
-              accept="video/*"
-              style={{ display: 'none' }}
-              onChange={handleDrop('video')}
-            />
-            <div className="upload-icon-wrap">
-              {videoFile || videoUrl ? <CheckCircle size={40} className="upload-done-icon" /> : <Film size={40} />}
-            </div>
-            <h3 className="upload-label">
-              {videoFile ? videoFile.name : videoUrl ? '✓ Video Attached' : 'Drop Video Here'}
+      {/* Upload Form */}
+      {story && (
+        <>
+          <div className="upload-form panel">
+            <h3 className="upload-story-name">
+              {story.title}
+              <span className={`badge badge-${story.dashStatus === "uploaded" ? "complete" : "draft"}`} style={{ marginLeft: "0.75rem" }}>
+                {story.dashStatus?.toUpperCase()}
+              </span>
             </h3>
-            <p className="upload-hint">
-              {videoFile ? `${(videoFile.size / 1024 / 1024).toFixed(1)} MB` : 'MP4, MOV, WEBM • Max 2GB'}
-            </p>
-            {videoProgress > 0 && videoProgress < 100 && (
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${videoProgress}%` }}>
-                  <span className="progress-text">{Math.round(videoProgress)}%</span>
-                </div>
+
+            {/* Video Link */}
+            <div className="form-group">
+              <label className="form-label" htmlFor="video-link">
+                🎬 Video Drive Link
+              </label>
+              <div className="link-input-row">
+                <input
+                  className="input"
+                  id="video-link"
+                  value={videoLink}
+                  onChange={(e) => setVideoLink(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/xxxxxxx/view?usp=sharing"
+                />
+                {videoLink && isValidDriveLink(videoLink) && (
+                  <a
+                    href={videoLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-icon"
+                    title="Drive mein dekhen"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+              <p className="form-hint">
+                <Link size={12} /> Drive share link ya sirf File ID bhi kaam karta hai
+              </p>
+            </div>
+
+            {/* Thumbnail Link */}
+            <div className="form-group">
+              <label className="form-label" htmlFor="thumb-link">
+                🖼️ Thumbnail Drive Link
+              </label>
+              <div className="link-input-row">
+                <input
+                  className="input"
+                  id="thumb-link"
+                  value={thumbLink}
+                  onChange={(e) => setThumbLink(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/xxxxxxx/view?usp=sharing"
+                />
+                {thumbLink && isValidDriveLink(thumbLink) && (
+                  <a
+                    href={thumbLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-icon"
+                    title="Drive mein dekhen"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+              <p className="form-hint">
+                <Link size={12} /> 1280×720px recommended (PNG/JPG)
+              </p>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="upload-error">
+                <AlertTriangle size={14} /> {error}
               </div>
             )}
+
+            {/* Save Button */}
+            <div className="upload-btn-row">
+              <button
+                className="btn btn-primary"
+                onClick={handleSave}
+                disabled={saving || (!videoLink && !thumbLink)}
+              >
+                {saving ? "Saving…" : saved ? "✅ Saved!" : "💾 Save Links"}
+              </button>
+
+              {/* Review ke liye bhejo — sirf tab jab dono links hon */}
+              {(story.dashStatus === "uploaded" || bothLinked) && (
+                <button
+                  className="btn btn-warning"
+                  onClick={handleSendToReview}
+                  disabled={saving}
+                >
+                  <ArrowRight size={14} /> Send to Review
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Thumbnail Upload */}
-          <div
-            className={`upload-zone panel ${dragOverType === 'thumb' ? 'drag-over' : ''} ${thumbFile || thumbUrl ? 'has-file' : ''}`}
-            onDragOver={(e) => { e.preventDefault(); setDragOverType('thumb'); }}
-            onDragLeave={() => setDragOverType(null)}
-            onDrop={handleDrop('thumb')}
-            onClick={() => thumbRef.current?.click()}
-            role="button"
-            tabIndex={0}
-            aria-label="Upload thumbnail"
-            id="upload-thumb-zone"
-          >
-            <input
-              ref={thumbRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleDrop('thumb')}
-            />
-            <div className="upload-icon-wrap thumb">
-              {thumbFile || thumbUrl ? <CheckCircle size={40} className="upload-done-icon" /> : <Image size={40} />}
+          {/* Preview Section — agar thumb link hai */}
+          {thumbLink && isValidDriveLink(thumbLink) && (
+            <div className="thumb-preview panel">
+              <h4 className="sb-card-title">🖼️ Thumbnail Preview</h4>
+              <p className="form-hint" style={{ marginBottom: "0.5rem" }}>
+                Note: Drive images directly embed nahi hoti. Link pe click karein dekhne ke liye.
+              </p>
+              <a
+                href={thumbLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-sm"
+              >
+                <ExternalLink size={13} /> Thumbnail Drive mein Dekhen
+              </a>
             </div>
-            <h3 className="upload-label">
-              {thumbFile ? thumbFile.name : thumbUrl ? '✓ Thumbnail Attached' : 'Drop Thumbnail Here'}
-            </h3>
-            <p className="upload-hint">
-              {thumbFile ? `${(thumbFile.size / 1024 / 1024).toFixed(1)} MB` : 'PNG, JPG, WEBP • 1280×720 recommended'}
-            </p>
-            {thumbProgress > 0 && thumbProgress < 100 && (
-              <div className="progress-bar">
-                <div className="progress-fill thumb-fill" style={{ width: `${thumbProgress}%` }}>
-                  <span className="progress-text">{Math.round(thumbProgress)}%</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="upload-placeholder panel">
-          <Upload size={48} style={{ color: 'var(--dimmer)' }} />
-          <p>Select a story above to start uploading assets</p>
-        </div>
+          )}
+
+          {/* Status Banner */}
+          {isUploaded && (
+            <div className="upload-complete-banner panel">
+              <CheckCircle size={20} style={{ color: "var(--accent4)" }} />
+              <span>
+                Assets linked! Story <strong>{story.dashStatus === "review" ? "Review mein hai" : "Uploaded"}</strong>.
+              </span>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Completion Status */}
-      {selectedStoryId && bothUploaded && (
-        <div className="upload-complete-banner panel">
-          <CheckCircle size={20} className="upload-done-icon" />
-          <span>Both files uploaded! Story has been marked as <strong>Complete</strong> and is now held for review.</span>
+      {!story && (
+        <div className="upload-placeholder panel">
+          <Link size={48} style={{ color: "var(--dimmer)" }} />
+          <p>Upar se story select karein phir Drive links paste karein</p>
         </div>
       )}
     </section>

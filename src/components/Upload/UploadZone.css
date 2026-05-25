@@ -1,3 +1,7 @@
+/* ============================================
+   UploadZone.css — Drive link version
+   ============================================ */
+
 .upload-section {
   padding: 1.25rem;
   display: flex;
@@ -5,113 +9,114 @@
   gap: 1rem;
 }
 
-.section-title {
-  font-size: 1.1rem;
+/* Guide */
+.upload-guide {
+  background: rgba(0, 229, 255, 0.05);
+  border-color: var(--accent2);
+}
+
+.guide-title {
+  font-size: 0.82rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
+  color: var(--accent2);
+  margin-bottom: 0.6rem;
 }
 
-.section-desc {
+.guide-steps {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.guide-steps li {
+  font-size: 0.82rem;
   color: var(--dim);
-  font-size: 0.85rem;
+  line-height: 1.6;
 }
 
-.section-desc strong {
-  color: var(--accent4);
+.guide-steps strong {
+  color: var(--text);
 }
 
-/* Story Selector */
+/* Selector */
 .upload-story-selector {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.4rem;
 }
 
-.upload-story-info {
+/* Form */
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upload-story-name {
+  font-size: 1.1rem;
+  color: var(--accent3);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.link-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.link-input-row .input {
+  flex: 1;
+}
+
+.form-hint {
+  font-size: 0.72rem;
+  color: var(--dimmer);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.upload-error {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--accent);
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 23, 68, 0.08);
+  border: 2px solid var(--accent);
+}
+
+.upload-btn-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Preview */
+.thumb-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Complete banner */
+.upload-complete-banner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 0;
+  border-color: var(--accent4);
+  background: rgba(118, 255, 3, 0.06);
   font-size: 0.85rem;
 }
 
-.upload-story-title {
-  font-weight: 700;
-  color: var(--accent2);
-}
-
-.upload-story-cat {
-  font-size: 0.75rem;
-  color: var(--dim);
-}
-
-/* Upload Grid */
-.upload-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-}
-
-.upload-zone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 280px;
-  cursor: pointer;
-  border-style: dashed;
-  transition: var(--transition);
-  text-align: center;
-  gap: 0.75rem;
-}
-
-.upload-zone:hover {
-  border-color: var(--accent2);
-  background: rgba(0, 229, 255, 0.05);
-}
-
-.upload-zone.drag-over {
-  border-color: var(--accent3);
-  background: rgba(255, 234, 0, 0.08);
-  animation: borderGlow 1s infinite;
-}
-
-.upload-zone.has-file {
-  border-color: var(--accent4);
-  border-style: solid;
-}
-
-.upload-icon-wrap {
-  width: 70px;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid var(--accent2);
-  color: var(--accent2);
-  margin-bottom: 0.5rem;
-}
-
-.upload-icon-wrap.thumb {
-  border-color: var(--accent3);
-  color: var(--accent3);
-}
-
-.upload-done-icon {
+.upload-complete-banner strong {
   color: var(--accent4);
-}
-
-.upload-label {
-  font-size: 0.9rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.upload-hint {
-  font-size: 0.75rem;
-  color: var(--dimmer);
-  font-family: var(--font-mono);
 }
 
 /* Placeholder */
@@ -121,58 +126,8 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  min-height: 300px;
+  min-height: 250px;
   text-align: center;
   color: var(--dimmer);
   border-style: dashed;
-}
-
-/* Complete Banner */
-.upload-complete-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border-color: var(--accent4);
-  background: rgba(118, 255, 3, 0.08);
-  font-size: 0.85rem;
-}
-
-.upload-complete-banner strong {
-  color: var(--accent4);
-}
-
-/* Progress Bar */
-.progress-bar {
-  width: 80%;
-  height: 20px;
-  background: var(--bg);
-  border: 2px solid var(--border);
-  overflow: hidden;
-  margin-top: 0.5rem;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent2), var(--accent4));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: width 0.3s ease;
-}
-
-.progress-fill.thumb-fill {
-  background: linear-gradient(90deg, var(--accent3), var(--accent4));
-}
-
-.progress-text {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #000;
-}
-
-@media (max-width: 768px) {
-  .upload-grid {
-    grid-template-columns: 1fr;
-  }
 }

@@ -1,23 +1,31 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { fetchStories, createStory, updateStory, deleteStory } from '../lib/api';
+// ============================================
+// src/hooks/useStories.js
+// Sheet-based state management
+// Supabase completely removed
+// ============================================
 
-const STATUSES = ['draft', 'complete', 'review', 'approved', 'scheduled', 'published'];
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { fetchStories, updateStory } from "../lib/api";
 
-const STATUS_FLOW = {
-  draft: 'complete',
-  complete: 'review',
-  review: 'approved',
-  approved: 'published',
-};
+// Dashboard workflow statuses (Col I)
+export const DASH_STATUSES = [
+  "pending",    // Naya story, kuch nahi hua
+  "storyboard", // Story dekhi gayi, storyboard mein
+  "uploaded",   // Video + Thumbnail upload ho gaya
+  "review",     // Human review ke liye
+  "approved",   // Approved, publish ready
+  "scheduled",  // YouTube pe schedule ho gaya
+  "published",  // Live ho gaya
+];
 
 export function useStories() {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
-  // Fetch stories on mount
+  // ---- Fetch from Sheet ----
   const loadStories = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -35,104 +43,81 @@ export function useStories() {
     loadStories();
   }, [loadStories]);
 
-  // Add a new story
-  const addStory = useCallback(async (storyData) => {
+  // ---- Update story in Sheet + local state ----
+  const editStory = useCallback(async (rowId, updates) => {
     try {
-      const newStory = await createStory({
-        ...storyData,
-        status: 'draft',
-        views: 0,
-        likes: 0,
-      });
-      setStories(prev => [newStory, ...prev]);
-      return newStory;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  }, []);
-
-  // Bulk add stories (for sheet import)
-  const addStoriesBulk = useCallback(async (storiesData) => {
-    try {
-      const results = [];
-      for (const s of storiesData) {
-        const newStory = await createStory({
-          ...s,
-          status: 'draft',
-          views: 0,
-          likes: 0,
-        });
-        results.push(newStory);
-      }
-      setStories(prev => [...results, ...prev]);
-      return results;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  }, []);
-
-  // Update story status or data
-  const editStory = useCallback(async (id, updates) => {
-    try {
-      const result = await updateStory(id, updates);
-      setStories(prev =>
-        prev.map(s => (s.id === id ? { ...s, ...updates, ...result } : s))
+      // Pehle local state update karo (optimistic)
+      setStories((prev) =>
+        prev.map((s) => (s.id === rowId ? { ...s, ...updates } : s))
       );
-      return result;
+      // Phir Sheet mein write karo
+      await updateStory(rowId, updates);
     } catch (err) {
       setError(err.message);
+      // Fail hone par reload karo
+      await loadStories();
       throw err;
     }
-  }, []);
+  }, [loadStories]);
 
-  // Mark story as complete (when both video + thumbnail are uploaded)
-  const markComplete = useCallback(async (id) => {
-    return editStory(id, { status: 'complete' });
-  }, [editStory]);
+  // ---- Status change shortcuts ----
+  const moveToStoryboard = useCallback((rowId) =>
+    editStory(rowId, { dashStatus: "storyboard" }), [editStory]);
 
-  // Delete story
-  const removeStory = useCallback(async (id) => {
-    try {
-      await deleteStory(id);
-      setStories(prev => prev.filter(s => s.id !== id));
-    } catch (err) {
-      setError(err.message);
-    }
-  }, []);
+  const moveToUploaded = useCallback((rowId) =>
+    editStory(rowId, { dashStatus: "uploaded" }), [editStory]);
 
-  // Filtered stories
+  const moveToReview = useCallback((rowId) =>
+    editStory(rowId, { dashStatus: "review" }), [editStory]);
+
+  const approveStory = useCallback((rowId, approvedBy = "Admin") =>
+    editStory(rowId, { dashStatus: "approved", approvedBy }), [editStory]);
+
+  const scheduleStory = useCallback((rowId, scheduleDateTime) =>
+    editStory(rowId, { dashStatus: "scheduled", schedule: scheduleDateTime }), [editStory]);
+
+  const publishStory = useCallback((rowId, ytLink = "") =>
+    editStory(rowId, { dashStatus: "published", ytLink }), [editStory]);
+
+  // ---- Filtered stories ----
   const filteredStories = useMemo(() => {
-    return stories.filter(s => {
-      const matchesSearch = !searchQuery ||
-        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.category?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || s.status === filterStatus;
-      return matchesSearch && matchesStatus;
+    return stories.filter((s) => {
+      const query = searchQuery.toLowerCase();
+      const matchSearch =
+        !searchQuery ||
+        s.title?.toLowerCase().includes(query) ||
+        s.category?.toLowerCase().includes(query) ||
+        s.id?.toLowerCase().includes(query);
+
+      const matchStatus =
+        filterStatus === "all" || s.dashStatus === filterStatus;
+
+      return matchSearch && matchStatus;
     });
   }, [stories, searchQuery, filterStatus]);
 
-  // Pipeline counts
+  // ---- Pipeline counts (Col I values) ----
   const pipelineCounts = useMemo(() => {
     const counts = {};
-    STATUSES.forEach(s => { counts[s] = 0; });
-    stories.forEach(s => {
-      if (counts[s.status] !== undefined) counts[s.status]++;
+    DASH_STATUSES.forEach((s) => (counts[s] = 0));
+    stories.forEach((s) => {
+      const ds = s.dashStatus || "pending";
+      if (counts[ds] !== undefined) counts[ds]++;
+      else counts[ds] = 1;
     });
     return counts;
   }, [stories]);
 
-  // KPIs
+  // ---- KPIs ----
   const kpis = useMemo(() => {
     const total = stories.length;
-    const published = stories.filter(s => s.status === 'published').length;
-    const scheduled = stories.filter(s => s.status === 'scheduled').length;
-    const totalViews = stories.reduce((sum, s) => sum + (s.views || 0), 0);
-    const totalLikes = stories.reduce((sum, s) => sum + (s.likes || 0), 0);
-    const inPipeline = total - published - scheduled;
-    const avgViews = published > 0 ? Math.round(totalViews / published) : 0;
-    return { total, published, scheduled, totalViews, totalLikes, inPipeline, avgViews };
+    const published = stories.filter((s) => s.dashStatus === "published").length;
+    const scheduled = stories.filter((s) => s.dashStatus === "scheduled").length;
+    const approved = stories.filter((s) => s.dashStatus === "approved").length;
+    const inReview = stories.filter((s) => s.dashStatus === "review").length;
+    const uploaded = stories.filter((s) => s.dashStatus === "uploaded").length;
+    const pending = stories.filter((s) => s.dashStatus === "pending").length;
+    return { total, published, scheduled, approved, inReview, uploaded, pending };
   }, [stories]);
 
   return {
@@ -146,13 +131,14 @@ export function useStories() {
     setFilterStatus,
     pipelineCounts,
     kpis,
-    addStory,
-    addStoriesBulk,
     editStory,
-    markComplete,
-    removeStory,
+    moveToStoryboard,
+    moveToUploaded,
+    moveToReview,
+    approveStory,
+    scheduleStory,
+    publishStory,
     refresh: loadStories,
-    statuses: STATUSES,
-    statusFlow: STATUS_FLOW,
+    statuses: DASH_STATUSES,
   };
 }

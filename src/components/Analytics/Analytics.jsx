@@ -1,359 +1,224 @@
-import { useState, useEffect, useMemo } from 'react';
-import { BarChart3, TrendingUp, Eye, ThumbsUp, MessageSquare, Clock, Users, PlayCircle, RefreshCw, ExternalLink } from 'lucide-react';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend } from 'chart.js';
-import './Analytics.css';
+// ============================================
+// src/components/Analytics/Analytics.jsx
+// Sheet data se Analytics — no YouTube API needed
+// Pipeline counts + Category breakdown + Timeline
+// ============================================
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Filler, Tooltip, Legend);
+import { useMemo } from "react";
+import { BarChart3, TrendingUp, CheckCircle, Clock, BookOpen, Upload } from "lucide-react";
+import {
+  Chart as ChartJS,
+  CategoryScale, LinearScale,
+  BarElement, ArcElement,
+  Tooltip, Legend,
+} from "chart.js";
+import { Bar, Doughnut } from "react-chartjs-2";
+import "./Analytics.css";
 
-const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
-export default function Analytics({ stories }) {
-  const [channelStats, setChannelStats] = useState(null);
-  const [videoStats, setVideoStats] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [channelId, setChannelId] = useState('');
-  const [isConfigured, setIsConfigured] = useState(false);
+// Chart options reusable
+const chartOpts = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { labels: { color: "#fff", font: { size: 11 } } },
+  },
+  scales: {
+    x: { ticks: { color: "rgba(255,255,255,0.5)", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.05)" } },
+    y: { ticks: { color: "rgba(255,255,255,0.5)" }, grid: { color: "rgba(255,255,255,0.05)" } },
+  },
+};
 
-  // Load saved channel ID
-  useEffect(() => {
-    const saved = localStorage.getItem('yt_channel_id');
-    if (saved) {
-      setChannelId(saved);
-      setIsConfigured(true);
-    }
-  }, []);
+const donutOpts = {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: "60%",
+  plugins: {
+    legend: { position: "bottom", labels: { color: "#fff", padding: 12, font: { size: 11 } } },
+  },
+};
 
-  const fetchChannelStats = async (chId) => {
-    try {
-      const resp = await fetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${chId}&key=${GOOGLE_API_KEY}`
-      );
-      if (!resp.ok) throw new Error('Failed to fetch channel data');
-      const data = await resp.json();
-      if (data.items?.length > 0) {
-        return {
-          title: data.items[0].snippet.title,
-          thumbnail: data.items[0].snippet.thumbnails?.default?.url,
-          subscribers: Number(data.items[0].statistics.subscriberCount || 0),
-          totalViews: Number(data.items[0].statistics.viewCount || 0),
-          videoCount: Number(data.items[0].statistics.videoCount || 0),
-        };
-      }
-      throw new Error('Channel not found');
-    } catch (err) {
-      throw err;
-    }
-  };
+// Status → color map
+const STATUS_COLORS = {
+  pending:    "rgba(255,255,255,0.3)",
+  storyboard: "rgba(0,229,255,0.8)",
+  uploaded:   "rgba(255,234,0,0.8)",
+  review:     "rgba(255,23,68,0.8)",
+  approved:   "rgba(118,255,3,0.8)",
+  scheduled:  "rgba(255,234,0,0.6)",
+  published:  "rgba(224,64,251,0.8)",
+};
 
-  const fetchRecentVideos = async (chId) => {
-    try {
-      // Get recent video IDs
-      const searchResp = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${chId}&order=date&maxResults=10&type=video&key=${GOOGLE_API_KEY}`
-      );
-      if (!searchResp.ok) throw new Error('Failed to fetch videos');
-      const searchData = await searchResp.json();
-      const videoIds = searchData.items?.map(i => i.id.videoId).filter(Boolean) || [];
+export default function Analytics({ stories, pipelineCounts }) {
 
-      if (videoIds.length === 0) return [];
+  // ---- Pipeline Bar Chart ----
+  const pipelineData = useMemo(() => ({
+    labels: Object.keys(pipelineCounts).map((s) => s.toUpperCase()),
+    datasets: [{
+      label: "Stories",
+      data: Object.values(pipelineCounts),
+      backgroundColor: Object.keys(pipelineCounts).map((s) => STATUS_COLORS[s] || "#666"),
+      borderColor: "#fff",
+      borderWidth: 2,
+    }],
+  }), [pipelineCounts]);
 
-      // Get video stats
-      const statsResp = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoIds.join(',')}&key=${GOOGLE_API_KEY}`
-      );
-      if (!statsResp.ok) throw new Error('Failed to fetch video stats');
-      const statsData = await statsResp.json();
-
-      return (statsData.items || []).map(v => ({
-        id: v.id,
-        title: v.snippet.title,
-        thumbnail: v.snippet.thumbnails?.medium?.url,
-        publishedAt: v.snippet.publishedAt,
-        views: Number(v.statistics.viewCount || 0),
-        likes: Number(v.statistics.likeCount || 0),
-        comments: Number(v.statistics.commentCount || 0),
-        duration: v.contentDetails?.duration || '',
-      }));
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const loadAnalytics = async () => {
-    if (!channelId.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [ch, vids] = await Promise.all([
-        fetchChannelStats(channelId),
-        fetchRecentVideos(channelId),
-      ]);
-      setChannelStats(ch);
-      setVideoStats(vids);
-      localStorage.setItem('yt_channel_id', channelId);
-      setIsConfigured(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Auto-load if configured
-  useEffect(() => {
-    if (isConfigured && channelId) {
-      loadAnalytics();
-    }
-  }, [isConfigured]);
-
-  // Chart data
-  const viewsChartData = useMemo(() => {
-    const sorted = [...videoStats].reverse();
+  // ---- Category Breakdown ----
+  const categoryData = useMemo(() => {
+    const cats = {};
+    stories.forEach((s) => {
+      const c = s.category || "Unknown";
+      cats[c] = (cats[c] || 0) + 1;
+    });
     return {
-      labels: sorted.map(v => v.title.substring(0, 20) + (v.title.length > 20 ? '…' : '')),
+      labels: Object.keys(cats),
       datasets: [{
-        label: 'Views',
-        data: sorted.map(v => v.views),
-        borderColor: '#00E5FF',
-        backgroundColor: 'rgba(0, 229, 255, 0.15)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 5,
-        pointBackgroundColor: '#00E5FF',
-      }]
-    };
-  }, [videoStats]);
-
-  const engagementChartData = useMemo(() => {
-    const sorted = [...videoStats].reverse();
-    return {
-      labels: sorted.map(v => v.title.substring(0, 15) + (v.title.length > 15 ? '…' : '')),
-      datasets: [
-        {
-          label: 'Likes',
-          data: sorted.map(v => v.likes),
-          backgroundColor: 'rgba(118, 255, 3, 0.7)',
-          borderColor: '#76FF03',
-          borderWidth: 2,
-        },
-        {
-          label: 'Comments',
-          data: sorted.map(v => v.comments),
-          backgroundColor: 'rgba(224, 64, 251, 0.7)',
-          borderColor: '#E040FB',
-          borderWidth: 2,
-        }
-      ]
-    };
-  }, [videoStats]);
-
-  const performanceDonut = useMemo(() => {
-    const totalViews = videoStats.reduce((s, v) => s + v.views, 0);
-    const totalLikes = videoStats.reduce((s, v) => s + v.likes, 0);
-    const totalComments = videoStats.reduce((s, v) => s + v.comments, 0);
-    return {
-      labels: ['Views', 'Likes', 'Comments'],
-      datasets: [{
-        data: [totalViews, totalLikes, totalComments],
-        backgroundColor: ['rgba(0, 229, 255, 0.8)', 'rgba(118, 255, 3, 0.8)', 'rgba(224, 64, 251, 0.8)'],
-        borderColor: ['#00E5FF', '#76FF03', '#E040FB'],
+        data: Object.values(cats),
+        backgroundColor: [
+          "rgba(0,229,255,0.8)", "rgba(118,255,3,0.8)",
+          "rgba(224,64,251,0.8)", "rgba(255,234,0,0.8)",
+          "rgba(255,23,68,0.8)", "rgba(255,152,0,0.8)",
+        ],
+        borderColor: "#1A1A1A",
         borderWidth: 3,
-      }]
+      }],
     };
-  }, [videoStats]);
+  }, [stories]);
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { labels: { color: '#fff', font: { size: 11 } } },
-    },
-    scales: {
-      x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: 'rgba(255,255,255,0.5)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-    },
-  };
+  // ---- KPI Summary ----
+  const total = stories.length;
+  const published = stories.filter((s) => s.dashStatus === "published").length;
+  const inProgress = stories.filter((s) =>
+    ["storyboard", "uploaded", "review"].includes(s.dashStatus)
+  ).length;
+  const completionRate = total > 0 ? Math.round((published / total) * 100) : 0;
 
-  const donutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom', labels: { color: '#fff', padding: 15, font: { size: 11 } } },
-    },
-  };
-
-  // Published/scheduled stories from the app
-  const publishedStories = stories.filter(s => ['published', 'scheduled'].includes(s.status));
-
-  const formatNumber = (n) => {
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-    return n.toLocaleString();
-  };
+  // ---- Recently Updated ----
+  const recentlyUpdated = [...stories]
+    .filter((s) => s.updatedAt)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    .slice(0, 5);
 
   return (
-    <section className="analytics-section animate-fade-in" id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics">
-      <h2 className="section-title">YouTube Analytics</h2>
+    <section
+      className="analytics-section animate-fade-in"
+      id="panel-analytics"
+      role="tabpanel"
+      aria-labelledby="tab-analytics"
+    >
+      <h2 className="section-title">📈 Analytics</h2>
+      <p className="section-desc">Sheet data se real-time overview — pipeline progress aur category breakdown.</p>
 
-      {/* Channel Setup */}
-      {!isConfigured && (
-        <div className="analytics-setup panel">
-          <BarChart3 size={32} style={{ color: 'var(--accent2)' }} />
-          <h3>Connect Your YouTube Channel</h3>
-          <p className="section-desc">Enter your YouTube Channel ID to see real-time analytics.</p>
-          <div className="setup-form">
-            <input
-              className="input"
-              placeholder="Enter YouTube Channel ID (e.g. UCxxxxx)"
-              value={channelId}
-              onChange={e => setChannelId(e.target.value)}
-              id="analytics-channel-input"
-            />
-            <button
-              className="btn btn-primary"
-              onClick={loadAnalytics}
-              disabled={!channelId.trim() || loading}
-            >
-              {loading ? <><RefreshCw size={14} className="spin" /> Loading…</> : <><TrendingUp size={14} /> Connect</>}
-            </button>
-          </div>
-          {error && <p className="analytics-error">⚠️ {error}</p>}
-        </div>
-      )}
-
-      {/* Channel Overview */}
-      {channelStats && (
-        <>
-          <div className="analytics-channel panel">
-            <div className="channel-header">
-              {channelStats.thumbnail && (
-                <img src={channelStats.thumbnail} alt="Channel" className="channel-avatar" />
-              )}
-              <div>
-                <h3 className="channel-name">{channelStats.title}</h3>
-                <p className="channel-sub">YouTube Channel Analytics</p>
-              </div>
-              <button className="btn btn-sm" onClick={loadAnalytics} style={{ marginLeft: 'auto' }}>
-                <RefreshCw size={13} /> Refresh
-              </button>
-            </div>
-
-            <div className="channel-kpis">
-              <div className="channel-kpi">
-                <Users size={18} />
-                <div>
-                  <span className="kpi-value">{formatNumber(channelStats.subscribers)}</span>
-                  <span className="kpi-label">Subscribers</span>
-                </div>
-              </div>
-              <div className="channel-kpi">
-                <Eye size={18} />
-                <div>
-                  <span className="kpi-value">{formatNumber(channelStats.totalViews)}</span>
-                  <span className="kpi-label">Total Views</span>
-                </div>
-              </div>
-              <div className="channel-kpi">
-                <PlayCircle size={18} />
-                <div>
-                  <span className="kpi-value">{formatNumber(channelStats.videoCount)}</span>
-                  <span className="kpi-label">Videos</span>
-                </div>
-              </div>
-              <div className="channel-kpi">
-                <ThumbsUp size={18} />
-                <div>
-                  <span className="kpi-value">{formatNumber(videoStats.reduce((s, v) => s + v.likes, 0))}</span>
-                  <span className="kpi-label">Recent Likes</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Charts */}
-          <div className="analytics-charts">
-            <div className="chart-panel panel">
-              <h3 className="chart-title"><Eye size={14} /> Views per Video</h3>
-              <div className="chart-container">
-                <Line data={viewsChartData} options={chartOptions} />
-              </div>
-            </div>
-            <div className="chart-panel panel">
-              <h3 className="chart-title"><ThumbsUp size={14} /> Engagement</h3>
-              <div className="chart-container">
-                <Bar data={engagementChartData} options={chartOptions} />
-              </div>
-            </div>
-          </div>
-
-          <div className="analytics-charts single">
-            <div className="chart-panel panel donut-panel">
-              <h3 className="chart-title"><BarChart3 size={14} /> Overall Performance</h3>
-              <div className="chart-container donut-container">
-                <Doughnut data={performanceDonut} options={donutOptions} />
-              </div>
-            </div>
-          </div>
-
-          {/* Video List */}
-          {videoStats.length > 0 && (
-            <div className="video-list-section">
-              <h3 className="section-title" style={{ fontSize: '0.95rem' }}>Recent Videos</h3>
-              <div className="video-list">
-                {videoStats.map((v, i) => (
-                  <div key={v.id} className="video-card panel" style={{ animationDelay: `${i * 0.06}s` }}>
-                    {v.thumbnail && (
-                      <img src={v.thumbnail} alt={v.title} className="video-thumb" />
-                    )}
-                    <div className="video-info">
-                      <h4 className="video-title">{v.title}</h4>
-                      <div className="video-stats">
-                        <span><Eye size={12} /> {formatNumber(v.views)}</span>
-                        <span><ThumbsUp size={12} /> {formatNumber(v.likes)}</span>
-                        <span><MessageSquare size={12} /> {formatNumber(v.comments)}</span>
-                        <span><Clock size={12} /> {new Date(v.publishedAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    <a
-                      href={`https://www.youtube.com/watch?v=${v.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-sm btn-icon"
-                      title="Watch on YouTube"
-                    >
-                      <ExternalLink size={14} />
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Published Stories from App */}
-      {publishedStories.length > 0 && (
-        <div className="published-stories-section">
-          <h3 className="section-title" style={{ fontSize: '0.95rem' }}>📖 Published & Scheduled Stories</h3>
-          <div className="published-list">
-            {publishedStories.map(s => (
-              <div key={s.id} className="published-item panel">
-                <span className={`badge badge-${s.status}`}>{s.status.toUpperCase()}</span>
-                <span className="published-title">{s.title}</span>
-                {s.publishedAt && <span className="published-date mono">📅 {new Date(s.publishedAt).toLocaleDateString()}</span>}
-                {s.scheduledAt && <span className="published-date mono">⏰ {new Date(s.scheduledAt).toLocaleString()}</span>}
-              </div>
-            ))}
+      {/* KPI Row */}
+      <div className="an-kpi-grid">
+        <div className="an-kpi panel">
+          <BookOpen size={20} style={{ color: "var(--accent2)" }} />
+          <div>
+            <span className="an-kpi-val">{total}</span>
+            <span className="an-kpi-lbl">Total Stories</span>
           </div>
         </div>
-      )}
+        <div className="an-kpi panel">
+          <CheckCircle size={20} style={{ color: "var(--accent4)" }} />
+          <div>
+            <span className="an-kpi-val">{published}</span>
+            <span className="an-kpi-lbl">Published</span>
+          </div>
+        </div>
+        <div className="an-kpi panel">
+          <Upload size={20} style={{ color: "var(--accent3)" }} />
+          <div>
+            <span className="an-kpi-val">{inProgress}</span>
+            <span className="an-kpi-lbl">In Progress</span>
+          </div>
+        </div>
+        <div className="an-kpi panel">
+          <TrendingUp size={20} style={{ color: "var(--accent5)" }} />
+          <div>
+            <span className="an-kpi-val">{completionRate}%</span>
+            <span className="an-kpi-lbl">Completion Rate</span>
+          </div>
+        </div>
+      </div>
 
-      {loading && (
-        <div className="loading-state">
-          <div className="loader"></div>
-          <p>Fetching YouTube analytics…</p>
+      {/* Charts Grid */}
+      <div className="an-charts-grid">
+        {/* Pipeline Bar */}
+        <div className="an-chart-panel panel">
+          <h3 className="chart-title"><BarChart3 size={14} /> Pipeline Status</h3>
+          <div className="an-chart-container">
+            <Bar data={pipelineData} options={chartOpts} />
+          </div>
+        </div>
+
+        {/* Category Donut */}
+        <div className="an-chart-panel panel">
+          <h3 className="chart-title"><TrendingUp size={14} /> Category Breakdown</h3>
+          <div className="an-chart-container">
+            <Doughnut data={categoryData} options={donutOpts} />
+          </div>
+        </div>
+      </div>
+
+      {/* All Stories Status Table */}
+      <div className="an-table-section panel">
+        <h3 className="chart-title">📋 All Stories — Quick View</h3>
+        <div className="an-table-wrap">
+          <table className="an-table">
+            <thead>
+              <tr>
+                <th>Row#</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Video</th>
+                <th>Thumb</th>
+                <th>Schedule</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stories.map((s) => (
+                <tr key={s.id}>
+                  <td className="mono">{s.id}</td>
+                  <td className="an-title">{s.title}</td>
+                  <td>{s.category || "—"}</td>
+                  <td>
+                    <span className={`badge badge-${
+                      s.dashStatus === "pending" ? "draft" :
+                      s.dashStatus === "storyboard" ? "complete" :
+                      s.dashStatus === "uploaded" ? "review" :
+                      s.dashStatus
+                    }`}>
+                      {s.dashStatus?.toUpperCase()}
+                    </span>
+                  </td>
+                  <td>{s.videoLink ? "✅" : "❌"}</td>
+                  <td>{s.thumbLink ? "✅" : "❌"}</td>
+                  <td className="mono">{s.schedule || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Recently Updated */}
+      {recentlyUpdated.length > 0 && (
+        <div className="an-recent panel">
+          <h3 className="chart-title"><Clock size={14} /> Recently Updated</h3>
+          {recentlyUpdated.map((s) => (
+            <div key={s.id} className="an-recent-item">
+              <span className="mono an-recent-id">{s.id}</span>
+              <span className="an-recent-title">{s.title}</span>
+              <span className={`badge badge-${s.dashStatus === "pending" ? "draft" : s.dashStatus === "storyboard" ? "complete" : s.dashStatus}`}>
+                {s.dashStatus?.toUpperCase()}
+              </span>
+              <span className="mono an-recent-date">
+                {s.updatedAt ? new Date(s.updatedAt).toLocaleDateString() : "—"}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </section>

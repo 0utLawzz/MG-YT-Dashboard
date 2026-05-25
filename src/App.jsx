@@ -1,62 +1,60 @@
-import { useState } from 'react';
-import Header from './components/Header';
-import Tabs from './components/Tabs';
-import Dashboard from './components/Dashboard/Dashboard';
-import StoryTable from './components/Stories/StoryTable';
-import UploadZone from './components/Upload/UploadZone';
-import ReviewPanel from './components/Review/ReviewCard';
-import PublishForm from './components/Publish/PublishForm';
-import Analytics from './components/Analytics/Analytics';
-import SettingsDrawer from './components/SettingsDrawer';
-import SheetImportModal from './components/SheetImport/SheetImportModal';
-import { useStories } from './hooks/useStories';
-import './App.css';
+// ============================================
+// src/App.jsx
+// Main app — Supabase removed, Sheet connected
+// New tabs: Storyboard added
+// ============================================
+
+import { useState } from "react";
+import Header from "./components/Header";
+import Tabs from "./components/Tabs";
+import Dashboard from "./components/Dashboard/Dashboard";
+import StoryTable from "./components/Stories/StoryTable";
+import Storyboard from "./components/Storyboard/Storyboard";
+import UploadZone from "./components/Upload/UploadZone";
+import ReviewPanel from "./components/Review/ReviewCard";
+import PublishForm from "./components/Publish/PublishForm";
+import Analytics from "./components/Analytics/Analytics";
+import SettingsDrawer from "./components/SettingsDrawer";
+import { useStories } from "./hooks/useStories";
+import "./App.css";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
-  
-  const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState('');
-  const [newAge, setNewAge] = useState('2-6');
+  const [selectedStory, setSelectedStory] = useState(null); // Storyboard ke liye
 
   const {
-    stories, filteredStories, loading, error,
-    searchQuery, setSearchQuery, filterStatus, setFilterStatus,
-    pipelineCounts, kpis, addStory, addStoriesBulk, editStory, removeStory,
-    refresh, statuses,
+    stories,
+    filteredStories,
+    loading,
+    error,
+    searchQuery,
+    setSearchQuery,
+    filterStatus,
+    setFilterStatus,
+    pipelineCounts,
+    kpis,
+    editStory,
+    moveToStoryboard,
+    moveToUploaded,
+    moveToReview,
+    approveStory,
+    scheduleStory,
+    publishStory,
+    refresh,
+    statuses,
   } = useStories();
 
-  const handleAddStory = async () => {
-    if (!newTitle.trim()) return;
-    await addStory({ title: newTitle, category: newCategory, ageGroup: newAge });
-    setNewTitle('');
-    setNewCategory('');
-    setNewAge('2-6');
-    setAddModalOpen(false);
+  // Story click → Storyboard tab kholo
+  const handleOpenStoryboard = (story) => {
+    setSelectedStory(story);
+    setActiveTab("storyboard");
   };
 
-  const handleStoryUpdate = (id, updates) => {
-    editStory(id, updates);
-  };
-
-  const handleApprove = (story) => {
-    if (story.status === 'complete') editStory(story.id, { status: 'review' });
-    else if (story.status === 'review') editStory(story.id, { status: 'approved' });
-  };
-
-  const handleReject = (story) => {
-    editStory(story.id, { status: 'draft' });
-  };
-
-  const handlePublishClick = () => {
-    setActiveTab('publish');
-  };
-
-  const handlePublishStory = (story, publishData) => {
-    editStory(story.id, publishData);
+  // Storyboard se Upload tab pe jao
+  const handleGoToUpload = (story) => {
+    setSelectedStory(story);
+    setActiveTab("upload");
   };
 
   return (
@@ -65,34 +63,44 @@ export default function App() {
 
       <Header
         onRefresh={refresh}
-        onAddStory={() => setAddModalOpen(true)}
-        onImportSheet={() => setImportModalOpen(true)}
-        onToggleSettings={() => setSettingsOpen(prev => !prev)}
+        onToggleSettings={() => setSettingsOpen((prev) => !prev)}
       />
 
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
       <main className="app-main">
+        {/* Loading State */}
         {loading && (
           <div className="loading-state">
             <div className="loader"></div>
-            <p>Loading stories…</p>
+            <p>Sheet se data load ho raha hai…</p>
           </div>
         )}
 
+        {/* Error State */}
         {error && (
           <div className="error-state panel">
             <p>⚠️ {error}</p>
-            <button className="btn btn-sm" onClick={refresh}>Retry</button>
+            <button className="btn btn-sm" onClick={refresh}>
+              Retry
+            </button>
           </div>
         )}
 
+        {/* Main Content */}
         {!loading && !error && (
           <>
-            {activeTab === 'dashboard' && (
-              <Dashboard stories={stories} kpis={kpis} pipelineCounts={pipelineCounts} />
+            {/* TAB: Dashboard */}
+            {activeTab === "dashboard" && (
+              <Dashboard
+                stories={stories}
+                kpis={kpis}
+                pipelineCounts={pipelineCounts}
+              />
             )}
-            {activeTab === 'stories' && (
+
+            {/* TAB: Stories Table */}
+            {activeTab === "stories" && (
               <StoryTable
                 stories={filteredStories}
                 searchQuery={searchQuery}
@@ -100,96 +108,66 @@ export default function App() {
                 filterStatus={filterStatus}
                 onFilterChange={setFilterStatus}
                 statuses={statuses}
-                onEdit={(story) => console.log('Edit story:', story)}
-                onRemove={removeStory}
+                onOpenStoryboard={handleOpenStoryboard}
               />
             )}
-            {activeTab === 'upload' && (
-              <UploadZone stories={stories} onStoryUpdate={handleStoryUpdate} />
+
+            {/* TAB: Storyboard — Story detail + status move */}
+            {activeTab === "storyboard" && (
+              <Storyboard
+                story={selectedStory}
+                stories={stories}
+                onSelectStory={setSelectedStory}
+                onMoveToStoryboard={moveToStoryboard}
+                onGoToUpload={handleGoToUpload}
+                onEdit={editStory}
+              />
             )}
-            {activeTab === 'review' && (
+
+            {/* TAB: Upload — Drive links */}
+            {activeTab === "upload" && (
+              <UploadZone
+                story={selectedStory}
+                stories={stories}
+                onSelectStory={setSelectedStory}
+                onUpdate={editStory}
+                onMoveToUploaded={moveToUploaded}
+                onMoveToReview={moveToReview}
+              />
+            )}
+
+            {/* TAB: Review */}
+            {activeTab === "review" && (
               <ReviewPanel
                 stories={stories}
-                onApprove={handleApprove}
-                onReject={handleReject}
-                onPublish={handlePublishClick}
+                onApprove={approveStory}
+                onEdit={editStory}
+                onGoToPublish={() => setActiveTab("publish")}
               />
             )}
-            {activeTab === 'publish' && (
-              <PublishForm 
-                stories={stories} 
-                onPublish={handlePublishStory} 
+
+            {/* TAB: Publish */}
+            {activeTab === "publish" && (
+              <PublishForm
+                stories={stories}
+                onSchedule={scheduleStory}
+                onPublish={publishStory}
+                onEdit={editStory}
               />
             )}
-            {activeTab === 'analytics' && (
-              <Analytics stories={stories} />
+
+            {/* TAB: Analytics */}
+            {activeTab === "analytics" && (
+              <Analytics stories={stories} pipelineCounts={pipelineCounts} />
             )}
           </>
         )}
       </main>
 
-      {/* Add Story Modal */}
-      {addModalOpen && (
-        <>
-          <div className="modal-overlay" onClick={() => setAddModalOpen(false)}></div>
-          <div className="modal" role="dialog" aria-label="Add new story" id="add-story-modal">
-            <h2 className="modal-title">📝 New Story</h2>
-            <div className="form-group">
-              <label className="form-label" htmlFor="new-story-title">Title</label>
-              <input
-                className="input"
-                id="new-story-title"
-                value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                placeholder="Enter story title…"
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="new-story-category">Category</label>
-              <input
-                className="input"
-                id="new-story-category"
-                value={newCategory}
-                onChange={e => setNewCategory(e.target.value)}
-                placeholder="e.g. Adventure, Bedtime, Fantasy…"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="new-story-age">Age Group</label>
-              <select
-                className="input"
-                id="new-story-age"
-                value={newAge}
-                onChange={e => setNewAge(e.target.value)}
-              >
-                <option value="1-3">1-3 years</option>
-                <option value="2-4">2-4 years</option>
-                <option value="2-6">2-6 years</option>
-                <option value="3-5">3-5 years</option>
-                <option value="3-6">3-6 years</option>
-                <option value="4-6">4-6 years</option>
-              </select>
-            </div>
-            <div className="modal-actions">
-              <button className="btn btn-sm" onClick={() => setAddModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary btn-sm" onClick={handleAddStory} disabled={!newTitle.trim()}>
-                Create Story
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Sheet Import Modal */}
-      {importModalOpen && (
-        <SheetImportModal 
-          onImport={addStoriesBulk} 
-          onClose={() => setImportModalOpen(false)} 
-        />
-      )}
-
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 }
