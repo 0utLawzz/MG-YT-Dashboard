@@ -6,6 +6,7 @@ const TABS = [
   { id: 'upload', label: 'Upload', icon: '⬆️' },
   { id: 'review', label: 'Review', icon: '✅' },
   { id: 'publish', label: 'Publish', icon: '🚀' },
+  { id: 'analytics', label: 'Analytics', icon: '📈' },
 ];
 
 export default function Tabs({ activeTab, onChange }) {

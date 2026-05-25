@@ -2,8 +2,8 @@ import { Search, Filter, Copy, FileText, Trash2 } from 'lucide-react';
 import './StoryTable.css';
 
 const STATUS_LABELS = {
-  draft: 'Draft', scripted: 'Scripted', recording: 'Recording',
-  editing: 'Editing', review: 'Review', approved: 'Approved', published: 'Published',
+  draft: 'Draft', complete: 'Complete', review: 'Review',
+  approved: 'Approved', scheduled: 'Scheduled', published: 'Published',
 };
 
 export default function StoryTable({
@@ -61,7 +61,7 @@ export default function StoryTable({
               <th>Category</th>
               <th>Age</th>
               <th>Status</th>
-              <th>Duration</th>
+              <th>Assets</th>
               <th>Views</th>
               <th>Likes</th>
               <th>Actions</th>
@@ -81,10 +81,13 @@ export default function StoryTable({
                   <td className="row-age">{story.ageGroup || '—'}</td>
                   <td>
                     <span className={`badge badge-${story.status}`}>
-                      {STATUS_LABELS[story.status]}
+                      {STATUS_LABELS[story.status] || story.status}
                     </span>
                   </td>
-                  <td className="mono">{story.duration || '—'}</td>
+                  <td className="row-assets">
+                    <span title={story.videoUrl ? 'Video attached' : 'No video'}>{story.videoUrl ? '🎬' : '⬜'}</span>
+                    <span title={story.thumbnail ? 'Thumbnail attached' : 'No thumbnail'}>{story.thumbnail ? '🖼️' : '⬜'}</span>
+                  </td>
                   <td className="mono">{(story.views || 0).toLocaleString()}</td>
                   <td className="mono">{(story.likes || 0).toLocaleString()}</td>
                   <td className="row-actions">

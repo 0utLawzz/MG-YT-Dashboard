@@ -5,6 +5,10 @@
   gap: 1rem;
 }
 
+.review-section .section-desc strong {
+  color: var(--accent4);
+}
+
 .review-empty {
   display: flex;
   flex-direction: column;
@@ -14,6 +18,12 @@
   min-height: 200px;
   text-align: center;
   color: var(--dim);
+}
+
+.review-hint {
+  font-size: 0.75rem;
+  color: var(--dimmer);
+  font-style: italic;
 }
 
 .review-card {
@@ -53,6 +63,32 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.review-assets {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.review-asset {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border: 2px solid;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.review-asset.has {
+  border-color: var(--accent4);
+  color: var(--accent4);
+  background: rgba(118, 255, 3, 0.08);
+}
+
+.review-asset.missing {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255, 23, 68, 0.08);
 }
 
 .review-card-actions {

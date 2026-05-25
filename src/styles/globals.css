@@ -267,12 +267,11 @@ a:hover {
 }
 
 .badge-draft { background: rgba(255,255,255,0.1); border-color: var(--dim); color: var(--dim); }
-.badge-scripted { background: rgba(0,229,255,0.15); border-color: var(--accent2); color: var(--accent2); }
-.badge-recording { background: rgba(255,234,0,0.15); border-color: var(--accent3); color: var(--accent3); }
-.badge-editing { background: rgba(224,64,251,0.15); border-color: var(--accent5); color: var(--accent5); }
+.badge-complete { background: rgba(0,229,255,0.15); border-color: var(--accent2); color: var(--accent2); }
 .badge-review { background: rgba(255,23,68,0.15); border-color: var(--accent); color: var(--accent); }
 .badge-approved { background: rgba(118,255,3,0.15); border-color: var(--accent4); color: var(--accent4); }
-.badge-published { background: rgba(118,255,3,0.3); border-color: var(--accent4); color: var(--accent4); }
+.badge-scheduled { background: rgba(255,234,0,0.15); border-color: var(--accent3); color: var(--accent3); }
+.badge-published { background: rgba(224,64,251,0.2); border-color: var(--accent5); color: var(--accent5); }
 
 /* --- Input --- */
 .input {

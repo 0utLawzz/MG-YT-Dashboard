@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { Video, Send, Lock, Unlock, Upload, AlertTriangle } from 'lucide-react';
+import { Video, Send, Lock, Unlock, Upload, AlertTriangle, Calendar, Clock } from 'lucide-react';
 import './PublishForm.css';
 
-export default function PublishForm({ stories }) {
+export default function PublishForm({ stories, onPublish }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [selectedStory, setSelectedStory] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
   const [visibility, setVisibility] = useState('public');
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [publishResult, setPublishResult] = useState(null);
 
   const approved = stories.filter(s => s.status === 'approved');
 
@@ -29,15 +32,29 @@ export default function PublishForm({ stories }) {
     }
   };
 
+  const isScheduled = scheduleDate && scheduleTime;
+
   const handlePublish = () => {
     setPublishing(true);
     setProgress(0);
+    setPublishResult(null);
     let p = 0;
     const interval = setInterval(() => {
       p += Math.random() * 8;
       if (p >= 100) {
         p = 100;
         clearInterval(interval);
+
+        const story = stories.find(s => s.id === Number(selectedStory));
+        if (isScheduled) {
+          const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+          onPublish?.(story, { status: 'scheduled', scheduledAt });
+          setPublishResult({ type: 'scheduled', date: scheduleDate, time: scheduleTime });
+        } else {
+          onPublish?.(story, { status: 'published', publishedAt: new Date().toISOString() });
+          setPublishResult({ type: 'published' });
+        }
+
         setTimeout(() => setPublishing(false), 1000);
       }
       setProgress(Math.round(p));
@@ -90,7 +107,7 @@ export default function PublishForm({ stories }) {
             </select>
             {approved.length === 0 && (
               <p className="form-hint warning">
-                <AlertTriangle size={13} /> No approved stories. Approve a story in the Review tab first.
+                <AlertTriangle size={13} /> No approved stories. Pass a story through Review first.
               </p>
             )}
           </div>
@@ -147,17 +164,49 @@ export default function PublishForm({ stories }) {
             </select>
           </div>
 
+          {/* Schedule Section */}
+          <div className="schedule-section">
+            <h4 className="schedule-heading">
+              <Calendar size={14} /> Schedule (Optional)
+            </h4>
+            <p className="schedule-hint">Set a date and time to schedule. Leave empty to publish immediately (Publish Intent).</p>
+            <div className="schedule-fields">
+              <div className="form-group">
+                <label className="form-label" htmlFor="publish-date">Date</label>
+                <input
+                  className="input"
+                  id="publish-date"
+                  type="date"
+                  value={scheduleDate}
+                  onChange={e => setScheduleDate(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="publish-time">Time</label>
+                <input
+                  className="input"
+                  id="publish-time"
+                  type="time"
+                  value={scheduleTime}
+                  onChange={e => setScheduleTime(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Publish Button */}
           <button
-            className="btn btn-primary publish-btn"
+            className={`btn ${isScheduled ? 'btn-warning' : 'btn-primary'} publish-btn`}
             onClick={handlePublish}
             disabled={!selectedStory || publishing}
             id="btn-publish"
           >
             {publishing ? (
               <><Upload size={16} className="spin" /> Uploading… {progress}%</>
+            ) : isScheduled ? (
+              <><Clock size={16} /> Schedule for {scheduleDate} @ {scheduleTime}</>
             ) : (
-              <><Send size={16} /> Publish to YouTube</>
+              <><Send size={16} /> Publish Now (Instant)</>
             )}
           </button>
 
@@ -175,6 +224,17 @@ export default function PublishForm({ stories }) {
                  progress < 90 ? 'Setting metadata…' :
                  'Finalizing…'}
               </p>
+            </div>
+          )}
+
+          {/* Result Banner */}
+          {publishResult && (
+            <div className={`publish-result panel ${publishResult.type}`}>
+              {publishResult.type === 'scheduled' ? (
+                <><Calendar size={18} /> Story scheduled for <strong>{publishResult.date}</strong> at <strong>{publishResult.time}</strong></>
+              ) : (
+                <><Send size={18} /> Story published successfully! 🎉</>
+              )}
             </div>
           )}
         </div>

@@ -1,0 +1,88 @@
+.sheet-import-modal {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.import-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.import-error {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--accent);
+  padding: 0.5rem;
+  background: rgba(255, 23, 68, 0.08);
+  border: 2px solid var(--accent);
+}
+
+.sheet-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.preview-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent2);
+}
+
+.preview-table-wrap {
+  max-height: 300px;
+  overflow: auto;
+  border: 2px solid rgba(255,255,255,0.15);
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.preview-table th {
+  background: var(--bg);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--accent2);
+  border-bottom: 2px solid rgba(255,255,255,0.2);
+  position: sticky;
+  top: 0;
+}
+
+.preview-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--dim);
+}
+
+.preview-table tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+
+.preview-more {
+  font-size: 0.7rem;
+  color: var(--dimmer);
+  text-align: center;
+  padding: 0.5rem;
+}

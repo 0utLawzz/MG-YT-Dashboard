@@ -2,12 +2,11 @@ import './Pipeline.css';
 
 const STAGE_CONFIG = {
   draft:     { label: 'Draft',     color: 'var(--dim)',     icon: '📝' },
-  scripted:  { label: 'Scripted',  color: 'var(--accent2)', icon: '📜' },
-  recording: { label: 'Recording', color: 'var(--accent3)', icon: '🎙️' },
-  editing:   { label: 'Editing',   color: 'var(--accent5)', icon: '✂️' },
+  complete:  { label: 'Complete',  color: 'var(--accent2)', icon: '✅' },
   review:    { label: 'Review',    color: 'var(--accent)',  icon: '👀' },
-  approved:  { label: 'Approved',  color: 'var(--accent4)', icon: '✅' },
-  published: { label: 'Published', color: 'var(--accent4)', icon: '🚀' },
+  approved:  { label: 'Approved',  color: 'var(--accent4)', icon: '🟢' },
+  scheduled: { label: 'Scheduled', color: 'var(--accent3)', icon: '📅' },
+  published: { label: 'Published', color: 'var(--accent5)', icon: '🚀' },
 };
 
 export default function Pipeline({ counts }) {

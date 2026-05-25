@@ -11,12 +11,11 @@ export default function DonutChart({ counts }) {
 
   const colorMap = {
     draft: 'rgba(255,255,255,0.3)',
-    scripted: '#00E5FF',
-    recording: '#FFEA00',
-    editing: '#E040FB',
+    complete: '#00E5FF',
     review: '#FF1744',
     approved: '#76FF03',
-    published: '#4CAF50',
+    scheduled: '#FFEA00',
+    published: '#E040FB',
   };
 
   const data = {

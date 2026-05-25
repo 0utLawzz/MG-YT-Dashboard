@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { fetchStories, createStory, updateStory } from '../lib/api';
+import { fetchStories, createStory, updateStory, deleteStory } from '../lib/api';
 
-const STATUSES = ['draft', 'scripted', 'recording', 'editing', 'review', 'approved', 'published'];
+const STATUSES = ['draft', 'complete', 'review', 'approved', 'scheduled', 'published'];
+
+const STATUS_FLOW = {
+  draft: 'complete',
+  complete: 'review',
+  review: 'approved',
+  approved: 'published',
+};
 
 export function useStories() {
   const [stories, setStories] = useState([]);
@@ -45,22 +52,54 @@ export function useStories() {
     }
   }, []);
 
-  // Update story status or data
-  const editStory = useCallback(async (id, updates) => {
+  // Bulk add stories (for sheet import)
+  const addStoriesBulk = useCallback(async (storiesData) => {
     try {
-      await updateStory(id, updates);
-      setStories(prev =>
-        prev.map(s => (s.id === id ? { ...s, ...updates } : s))
-      );
+      const results = [];
+      for (const s of storiesData) {
+        const newStory = await createStory({
+          ...s,
+          status: 'draft',
+          views: 0,
+          likes: 0,
+        });
+        results.push(newStory);
+      }
+      setStories(prev => [...results, ...prev]);
+      return results;
     } catch (err) {
       setError(err.message);
       throw err;
     }
   }, []);
 
-  // Delete story (local only for now)
-  const removeStory = useCallback((id) => {
-    setStories(prev => prev.filter(s => s.id !== id));
+  // Update story status or data
+  const editStory = useCallback(async (id, updates) => {
+    try {
+      const result = await updateStory(id, updates);
+      setStories(prev =>
+        prev.map(s => (s.id === id ? { ...s, ...updates, ...result } : s))
+      );
+      return result;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }, []);
+
+  // Mark story as complete (when both video + thumbnail are uploaded)
+  const markComplete = useCallback(async (id) => {
+    return editStory(id, { status: 'complete' });
+  }, [editStory]);
+
+  // Delete story
+  const removeStory = useCallback(async (id) => {
+    try {
+      await deleteStory(id);
+      setStories(prev => prev.filter(s => s.id !== id));
+    } catch (err) {
+      setError(err.message);
+    }
   }, []);
 
   // Filtered stories
@@ -88,11 +127,12 @@ export function useStories() {
   const kpis = useMemo(() => {
     const total = stories.length;
     const published = stories.filter(s => s.status === 'published').length;
+    const scheduled = stories.filter(s => s.status === 'scheduled').length;
     const totalViews = stories.reduce((sum, s) => sum + (s.views || 0), 0);
     const totalLikes = stories.reduce((sum, s) => sum + (s.likes || 0), 0);
-    const inPipeline = total - published;
+    const inPipeline = total - published - scheduled;
     const avgViews = published > 0 ? Math.round(totalViews / published) : 0;
-    return { total, published, totalViews, totalLikes, inPipeline, avgViews };
+    return { total, published, scheduled, totalViews, totalLikes, inPipeline, avgViews };
   }, [stories]);
 
   return {
@@ -107,9 +147,12 @@ export function useStories() {
     pipelineCounts,
     kpis,
     addStory,
+    addStoriesBulk,
     editStory,
+    markComplete,
     removeStory,
     refresh: loadStories,
     statuses: STATUSES,
+    statusFlow: STATUS_FLOW,
   };
 }

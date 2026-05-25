@@ -6,7 +6,9 @@ import StoryTable from './components/Stories/StoryTable';
 import UploadZone from './components/Upload/UploadZone';
 import ReviewPanel from './components/Review/ReviewCard';
 import PublishForm from './components/Publish/PublishForm';
+import Analytics from './components/Analytics/Analytics';
 import SettingsDrawer from './components/SettingsDrawer';
+import SheetImportModal from './components/SheetImport/SheetImportModal';
 import { useStories } from './hooks/useStories';
 import './App.css';
 
@@ -14,6 +16,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [newAge, setNewAge] = useState('2-6');
@@ -21,7 +25,7 @@ export default function App() {
   const {
     stories, filteredStories, loading, error,
     searchQuery, setSearchQuery, filterStatus, setFilterStatus,
-    pipelineCounts, kpis, addStory, editStory, removeStory,
+    pipelineCounts, kpis, addStory, addStoriesBulk, editStory, removeStory,
     refresh, statuses,
   } = useStories();
 
@@ -34,14 +38,25 @@ export default function App() {
     setAddModalOpen(false);
   };
 
-  const handleApprove = (story) => {
-    if (story.status === 'review') editStory(story.id, { status: 'approved' });
-    else if (story.status === 'editing') editStory(story.id, { status: 'review' });
+  const handleStoryUpdate = (id, updates) => {
+    editStory(id, updates);
   };
 
-  const handlePublishStory = (story) => {
-    editStory(story.id, { status: 'published', publishedAt: new Date().toISOString() });
+  const handleApprove = (story) => {
+    if (story.status === 'complete') editStory(story.id, { status: 'review' });
+    else if (story.status === 'review') editStory(story.id, { status: 'approved' });
+  };
+
+  const handleReject = (story) => {
+    editStory(story.id, { status: 'draft' });
+  };
+
+  const handlePublishClick = () => {
     setActiveTab('publish');
+  };
+
+  const handlePublishStory = (story, publishData) => {
+    editStory(story.id, publishData);
   };
 
   return (
@@ -51,6 +66,7 @@ export default function App() {
       <Header
         onRefresh={refresh}
         onAddStory={() => setAddModalOpen(true)}
+        onImportSheet={() => setImportModalOpen(true)}
         onToggleSettings={() => setSettingsOpen(prev => !prev)}
       />
 
@@ -88,15 +104,26 @@ export default function App() {
                 onRemove={removeStory}
               />
             )}
-            {activeTab === 'upload' && <UploadZone />}
+            {activeTab === 'upload' && (
+              <UploadZone stories={stories} onStoryUpdate={handleStoryUpdate} />
+            )}
             {activeTab === 'review' && (
               <ReviewPanel
                 stories={stories}
                 onApprove={handleApprove}
-                onPublish={handlePublishStory}
+                onReject={handleReject}
+                onPublish={handlePublishClick}
               />
             )}
-            {activeTab === 'publish' && <PublishForm stories={stories} />}
+            {activeTab === 'publish' && (
+              <PublishForm 
+                stories={stories} 
+                onPublish={handlePublishStory} 
+              />
+            )}
+            {activeTab === 'analytics' && (
+              <Analytics stories={stories} />
+            )}
           </>
         )}
       </main>
@@ -152,6 +179,14 @@ export default function App() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Sheet Import Modal */}
+      {importModalOpen && (
+        <SheetImportModal 
+          onImport={addStoriesBulk} 
+          onClose={() => setImportModalOpen(false)} 
+        />
       )}
 
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />

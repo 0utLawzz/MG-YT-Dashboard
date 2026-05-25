@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Plus, Settings, Sparkles, Clock } from 'lucide-react';
+import { RefreshCw, Plus, Settings, Sparkles, Clock, FileSpreadsheet } from 'lucide-react';
 import './Header.css';
 
-export default function Header({ onRefresh, onAddStory, onToggleSettings }) {
+export default function Header({ onRefresh, onAddStory, onImportSheet, onToggleSettings }) {
   const [time, setTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -50,6 +50,16 @@ export default function Header({ onRefresh, onAddStory, onToggleSettings }) {
         >
           <RefreshCw size={14} className={refreshing ? 'spin' : ''} />
           REFRESH
+        </button>
+
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={onImportSheet}
+          aria-label="Import from Google Sheet"
+          id="btn-import-sheet"
+        >
+          <FileSpreadsheet size={14} />
+          IMPORT
         </button>
 
         <button

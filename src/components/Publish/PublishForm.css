@@ -89,6 +89,37 @@
   min-height: 100px;
 }
 
+/* Schedule Section */
+.schedule-section {
+  border: 2px solid rgba(255, 234, 0, 0.3);
+  padding: 1rem;
+  background: rgba(255, 234, 0, 0.03);
+}
+
+.schedule-heading {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent3);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.schedule-hint {
+  font-size: 0.7rem;
+  color: var(--dimmer);
+  margin-bottom: 0.75rem;
+}
+
+.schedule-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* Publish Button */
 .publish-btn {
   align-self: flex-start;
   margin-top: 0.5rem;
@@ -99,6 +130,7 @@
   cursor: not-allowed;
 }
 
+/* Progress */
 .publish-progress {
   display: flex;
   flex-direction: column;
@@ -112,6 +144,30 @@
 .progress-stage {
   font-size: 0.7rem;
   color: var(--dim);
+}
+
+/* Result Banner */
+.publish-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.publish-result.scheduled {
+  border-color: var(--accent3);
+  background: rgba(255, 234, 0, 0.08);
+  color: var(--accent3);
+}
+
+.publish-result.published {
+  border-color: var(--accent4);
+  background: rgba(118, 255, 3, 0.08);
+  color: var(--accent4);
+}
+
+.publish-result strong {
+  color: var(--text);
 }
 
 .spin {
