@@ -1,5 +1,5 @@
 /* ============================================
-   UploadZone.css — Drive link version
+   UploadZone.css — Drive upload + link paste
    ============================================ */
 
 .upload-section {
@@ -9,35 +9,38 @@
   gap: 1rem;
 }
 
-/* Guide */
-.upload-guide {
-  background: rgba(0, 229, 255, 0.05);
-  border-color: var(--accent2);
+/* Auth Section */
+.drive-auth {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.guide-title {
-  font-size: 0.82rem;
+.auth-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.auth-header h3 {
+  font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--accent2);
-  margin-bottom: 0.6rem;
 }
 
-.guide-steps {
-  padding-left: 1.25rem;
+.auth-status {
+  font-size: 0.75rem;
+  color: var(--dim);
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.3rem;
 }
 
-.guide-steps li {
-  font-size: 0.82rem;
-  color: var(--dim);
-  line-height: 1.6;
-}
-
-.guide-steps strong {
-  color: var(--text);
+/* Upload Mode Toggle */
+.upload-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* Selector */
@@ -62,6 +65,89 @@
   flex-wrap: wrap;
 }
 
+/* Upload Zones */
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 200px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-style: dashed;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent2);
+  background: rgba(0, 229, 255, 0.03);
+}
+
+.upload-zone.has-file {
+  border-color: var(--accent4);
+  background: rgba(118, 255, 3, 0.03);
+}
+
+.upload-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-icon-wrap.thumb {
+  border-color: var(--accent3);
+}
+
+.upload-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: var(--dimmer);
+  text-align: center;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent4));
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-fill.thumb-fill {
+  background: linear-gradient(90deg, var(--accent3), var(--accent5));
+}
+
+.progress-text {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Link Input */
 .link-input-row {
   display: flex;
   gap: 0.5rem;
@@ -98,13 +184,6 @@
   flex-wrap: wrap;
 }
 
-/* Preview */
-.thumb-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 /* Complete banner */
 .upload-complete-banner {
   display: flex;
@@ -130,4 +209,15 @@
   text-align: center;
   color: var(--dimmer);
   border-style: dashed;
+}
+
+@media (max-width: 768px) {
+  .drive-auth {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .upload-zone {
+    min-height: 150px;
+  }
 }

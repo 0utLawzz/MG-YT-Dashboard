@@ -1,11 +1,18 @@
 // ============================================
 // src/components/Upload/UploadZone.jsx
-// Supabase REMOVED — Google Drive links paste karo
-// Video + Thumbnail Drive link → Sheet mein save
+// Google Drive file upload + link paste support
+// Video + Thumbnail upload directly to Drive
 // ============================================
 
-import { useState, useEffect } from "react";
-import { Link, CheckCircle, AlertTriangle, ExternalLink, ArrowRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Link, CheckCircle, AlertTriangle, ExternalLink, ArrowRight, Upload, Cloud, Lock, Unlock } from "lucide-react";
+import {
+  isDriveAuthenticated,
+  authenticateWithDrive,
+  uploadToDrive,
+  getDriveShareableLink,
+  loadGoogleScript,
+} from "../../lib/drive";
 import "./UploadZone.css";
 
 export default function UploadZone({
@@ -21,6 +28,18 @@ export default function UploadZone({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [uploadMode, setUploadMode] = useState("file"); // "file" or "link"
+  const [videoFile, setVideoFile] = useState(null);
+  const [thumbFile, setThumbFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState({ video: 0, thumb: 0 });
+  const [authLoading, setAuthLoading] = useState(false);
+  const videoInputRef = useRef(null);
+  const thumbInputRef = useRef(null);
+
+  // Load Google script on mount
+  useEffect(() => {
+    loadGoogleScript().catch(console.error);
+  }, []);
 
   // Story change hone par fields update karo
   useEffect(() => {
@@ -37,14 +56,86 @@ export default function UploadZone({
     if (found) onSelectStory(found);
   };
 
-  // Drive link validate karo — file ID hona chahiye
+  // Drive link validate karo
   const isValidDriveLink = (link) => {
     if (!link) return false;
     return (
       link.includes("drive.google.com") ||
       link.includes("docs.google.com") ||
-      /^[\w-]{25,}$/.test(link) // sirf file ID paste kiya
+      /^[\w-]{25,}$/.test(link)
     );
+  };
+
+  // Google OAuth handle karo
+  const handleAuth = async () => {
+    setAuthLoading(true);
+    try {
+      await authenticateWithDrive();
+    } catch (err) {
+      setError("Google Drive authentication failed: " + err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // File upload to Drive
+  const handleFileUpload = async (file, type) => {
+    if (!file) return;
+
+    const setProgress = type === "video" ? (p) => setUploadProgress((prev) => ({ ...prev, video: p })) : (p) => setUploadProgress((prev) => ({ ...prev, thumb: p }));
+
+    try {
+      setProgress(10);
+      const result = await uploadToDrive(file);
+      setProgress(80);
+
+      // Get shareable link
+      const shareableLink = await getDriveShareableLink(result.id);
+      setProgress(100);
+
+      if (type === "video") {
+        setVideoLink(shareableLink);
+      } else {
+        setThumbLink(shareableLink);
+      }
+
+      // Auto-save after upload
+      await handleSave();
+
+      setTimeout(() => setProgress((prev) => ({ ...prev, [type]: 0 })), 2000);
+    } catch (err) {
+      setError(`${type} upload failed: ` + err.message);
+      setProgress(0);
+    }
+  };
+
+  // File drop handler
+  const handleDrop = (e, type) => {
+    e.preventDefault();
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      if (type === "video" && !file.type.startsWith("video/")) {
+        setError("Please select a video file");
+        return;
+      }
+      if (type === "thumb" && !file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+      if (type === "video") setVideoFile(file);
+      if (type === "thumb") setThumbFile(file);
+      handleFileUpload(file, type);
+    }
+  };
+
+  // File input handler
+  const handleFileSelect = (e, type) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (type === "video") setVideoFile(file);
+      if (type === "thumb") setThumbFile(file);
+      handleFileUpload(file, type);
+    }
   };
 
   // Save both links
@@ -68,13 +159,11 @@ export default function UploadZone({
 
     setSaving(true);
     try {
-      // Links save karo Sheet mein
       await onUpdate(story.id, {
         videoLink: videoLink,
         thumbLink: thumbLink,
       });
 
-      // Agar dono links hain → status "uploaded"
       if (videoLink && thumbLink) {
         await onMoveToUploaded(story.id);
       }
@@ -88,7 +177,7 @@ export default function UploadZone({
     }
   };
 
-  // Review ke liye bhejو
+  // Review ke liye bhejo
   const handleSendToReview = async () => {
     setSaving(true);
     try {
@@ -103,6 +192,7 @@ export default function UploadZone({
 
   const bothLinked = videoLink && thumbLink;
   const isUploaded = story?.dashStatus === "uploaded" || story?.dashStatus === "review";
+  const isAuthenticated = isDriveAuthenticated();
 
   return (
     <section
@@ -113,19 +203,53 @@ export default function UploadZone({
     >
       <h2 className="section-title">⬆️ Upload Assets</h2>
       <p className="section-desc">
-        Google Drive mein video/thumbnail upload karein. Wahan se{" "}
-        <strong>Share → Copy Link</strong> karein aur yahan paste karein.
+        Google Drive mein directly upload karein ya Drive links paste karein.
       </p>
 
-      {/* Drive Upload Guide */}
-      <div className="upload-guide panel">
-        <h4 className="guide-title">📋 Drive Upload Kaise Karein?</h4>
-        <ol className="guide-steps">
-          <li>Google Drive kholen → <strong>New → File Upload</strong></li>
-          <li>Video ya Thumbnail upload karein</li>
-          <li>File pe right-click → <strong>Share → Anyone with link → Copy</strong></li>
-          <li>Woh link yahan paste karein</li>
-        </ol>
+      {/* Auth Section */}
+      <div className="drive-auth panel">
+        <div className="auth-header">
+          <Cloud size={24} style={{ color: isAuthenticated ? "var(--accent4)" : "var(--dimmer)" }} />
+          <div>
+            <h3>Google Drive Connection</h3>
+            <p className="auth-status">
+              {isAuthenticated ? (
+                <>
+                  <Unlock size={14} style={{ color: "var(--accent4)" }} /> Connected
+                </>
+              ) : (
+                <>
+                  <Lock size={14} style={{ color: "var(--accent)" }} /> Not connected
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        {!isAuthenticated && (
+          <button
+            className="btn btn-primary"
+            onClick={handleAuth}
+            disabled={authLoading}
+          >
+            {authLoading ? "Connecting…" : <><Cloud size={16} /> Connect Google Drive</>}
+          </button>
+        )}
+      </div>
+
+      {/* Upload Mode Toggle */}
+      <div className="upload-mode-toggle">
+        <button
+          className={`btn btn-sm ${uploadMode === "file" ? "btn-primary" : ""}`}
+          onClick={() => setUploadMode("file")}
+        >
+          <Upload size={14} /> File Upload
+        </button>
+        <button
+          className={`btn btn-sm ${uploadMode === "link" ? "btn-primary" : ""}`}
+          onClick={() => setUploadMode("link")}
+        >
+          <Link size={14} /> Paste Link
+        </button>
       </div>
 
       {/* Story Selector */}
@@ -149,7 +273,115 @@ export default function UploadZone({
       </div>
 
       {/* Upload Form */}
-      {story && (
+      {story && isAuthenticated && uploadMode === "file" && (
+        <>
+          <div className="upload-form panel">
+            <h3 className="upload-story-name">
+              {story.title}
+              <span className={`badge badge-${story.dashStatus === "uploaded" ? "complete" : "draft"}`} style={{ marginLeft: "0.75rem" }}>
+                {story.dashStatus?.toUpperCase()}
+              </span>
+            </h3>
+
+            {/* Video Upload Zone */}
+            <div
+              className={`upload-zone panel ${videoFile || videoLink ? "has-file" : ""}`}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, "video")}
+              onClick={() => videoInputRef.current?.click()}
+            >
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                style={{ display: "none" }}
+                onChange={(e) => handleFileSelect(e, "video")}
+              />
+              <div className="upload-icon-wrap">
+                {videoLink ? <CheckCircle size={40} style={{ color: "var(--accent4)" }} /> : <Upload size={40} />}
+              </div>
+              <h3 className="upload-label">
+                {videoLink ? "✓ Video Uploaded" : "Drop Video Here"}
+              </h3>
+              <p className="upload-hint">
+                {videoFile ? videoFile.name : "MP4, MOV, WEBM • Max 2GB"}
+              </p>
+              {uploadProgress.video > 0 && uploadProgress.video < 100 && (
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${uploadProgress.video}%` }}>
+                    <span className="progress-text">{Math.round(uploadProgress.video)}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail Upload Zone */}
+            <div
+              className={`upload-zone panel ${thumbFile || thumbLink ? "has-file" : ""}`}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, "thumb")}
+              onClick={() => thumbInputRef.current?.click()}
+            >
+              <input
+                ref={thumbInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => handleFileSelect(e, "thumb")}
+              />
+              <div className="upload-icon-wrap thumb">
+                {thumbLink ? <CheckCircle size={40} style={{ color: "var(--accent4)" }} /> : <Upload size={40} />}
+              </div>
+              <h3 className="upload-label">
+                {thumbLink ? "✓ Thumbnail Uploaded" : "Drop Thumbnail Here"}
+              </h3>
+              <p className="upload-hint">
+                {thumbFile ? thumbFile.name : "PNG, JPG, WEBP • 1280×720 recommended"}
+              </p>
+              {uploadProgress.thumb > 0 && uploadProgress.thumb < 100 && (
+                <div className="progress-bar">
+                  <div className="progress-fill thumb-fill" style={{ width: `${uploadProgress.thumb}%` }}>
+                    <span className="progress-text">{Math.round(uploadProgress.thumb)}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="upload-error">
+                <AlertTriangle size={14} /> {error}
+              </div>
+            )}
+
+            {/* Status Banner */}
+            {isUploaded && (
+              <div className="upload-complete-banner panel">
+                <CheckCircle size={20} style={{ color: "var(--accent4)" }} />
+                <span>
+                  Assets uploaded! Story <strong>{story.dashStatus === "review" ? "Review mein hai" : "Uploaded"}</strong>.
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Send to Review */}
+          {bothLinked && (
+            <button
+              className="btn btn-warning"
+              onClick={handleSendToReview}
+              disabled={saving}
+            >
+              <ArrowRight size={14} /> Send to Review
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Link Paste Mode */}
+      {story && uploadMode === "link" && (
         <>
           <div className="upload-form panel">
             <h3 className="upload-story-name">
@@ -236,7 +468,7 @@ export default function UploadZone({
                 {saving ? "Saving…" : saved ? "✅ Saved!" : "💾 Save Links"}
               </button>
 
-              {/* Review ke liye bhejo — sirf tab jab dono links hon */}
+              {/* Review ke liye bhejo */}
               {(story.dashStatus === "uploaded" || bothLinked) && (
                 <button
                   className="btn btn-warning"
@@ -248,24 +480,6 @@ export default function UploadZone({
               )}
             </div>
           </div>
-
-          {/* Preview Section — agar thumb link hai */}
-          {thumbLink && isValidDriveLink(thumbLink) && (
-            <div className="thumb-preview panel">
-              <h4 className="sb-card-title">🖼️ Thumbnail Preview</h4>
-              <p className="form-hint" style={{ marginBottom: "0.5rem" }}>
-                Note: Drive images directly embed nahi hoti. Link pe click karein dekhne ke liye.
-              </p>
-              <a
-                href={thumbLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-sm"
-              >
-                <ExternalLink size={13} /> Thumbnail Drive mein Dekhen
-              </a>
-            </div>
-          )}
 
           {/* Status Banner */}
           {isUploaded && (
@@ -281,8 +495,8 @@ export default function UploadZone({
 
       {!story && (
         <div className="upload-placeholder panel">
-          <Link size={48} style={{ color: "var(--dimmer)" }} />
-          <p>Upar se story select karein phir Drive links paste karein</p>
+          <Upload size={48} style={{ color: "var(--dimmer)" }} />
+          <p>Upar se story select karein</p>
         </div>
       )}
     </section>

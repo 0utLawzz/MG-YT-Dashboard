@@ -175,7 +175,24 @@ function getAnalytics() {
    const SCRIPT_URL = "YOUR_APPS_SCRIPT_URL_HERE";
    ```
 
-### 4. Run the App
+### 4. Google Drive OAuth Setup (Optional)
+For direct file upload to Google Drive (instead of pasting links):
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable **Google Drive API**
+4. Go to **APIs & Services → Credentials**
+5. Click **Create Credentials → OAuth 2.0 Client ID**
+6. Application type: **Web application**
+7. Authorized JavaScript origins: `http://localhost:5173` (and your production URL)
+8. Authorized redirect URIs: Leave empty
+9. Copy the **Client ID**
+10. Create a `.env` file in the project root:
+   ```env
+   VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
+   ```
+
+### 5. Run the App
 ```powershell
 npm run dev
 ```
