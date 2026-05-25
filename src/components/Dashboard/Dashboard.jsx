@@ -14,9 +14,9 @@ export default function Dashboard({ stories, kpis, pipelineCounts }) {
         <KPICard icon="📖" label="Total Stories" value={kpis.total} color="var(--accent2)" sub="All time" />
         <KPICard icon="🚀" label="Published" value={kpis.published} color="var(--accent4)" sub="Live on YouTube" />
         <KPICard icon="📅" label="Scheduled" value={kpis.scheduled} color="var(--accent3)" sub="Pending release" />
-        <KPICard icon="👁️" label="Total Views" value={kpis.totalViews} color="var(--accent2)" sub={`Avg: ${kpis.avgViews.toLocaleString()}`} />
-        <KPICard icon="❤️" label="Total Likes" value={kpis.totalLikes} color="var(--accent)" sub="Engagement" />
-        <KPICard icon="🔄" label="In Pipeline" value={kpis.inPipeline} color="var(--accent5)" sub="Work in progress" />
+        <KPICard icon="✅" label="Approved" value={kpis.approved} color="var(--accent4)" sub="Ready to publish" />
+        <KPICard icon="👁️" label="In Review" value={kpis.inReview} color="var(--accent)" sub="Pending approval" />
+        <KPICard icon="🔄" label="Pending" value={kpis.pending} color="var(--accent5)" sub="Not started" />
       </div>
 
       {/* Main Dashboard Grid */}
