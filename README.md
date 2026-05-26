@@ -122,26 +122,28 @@ function getAllStories() {
 function updateStory(rowId, updates) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const data = sheet.getDataRange().getValues();
-  
+  const headers = data[0];
+
+  // Map column names to indices (case-insensitive)
+  const colMap = {};
+  headers.forEach((header, index) => {
+    colMap[header.toLowerCase().replace(/\s+/g, '')] = index;
+  });
+
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === rowId) {
+    if (String(data[i][0]) === String(rowId)) {
       Object.keys(updates).forEach(key => {
-        const colIndex = getColumnIndex(key);
-        if (colIndex >= 0) {
+        const colIndex = colMap[key.toLowerCase().replace(/\s+/g, '')];
+        if (colIndex !== undefined) {
           sheet.getRange(i + 1, colIndex + 1).setValue(updates[key]);
         }
       });
       break;
     }
   }
-  
+
   return ContentService.createTextOutput(JSON.stringify({ success: true }))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-function getColumnIndex(key) {
-  const columns = ['rowid', 'title', 'category', 'agegroup', 'story', 'character', 'hashtags', 'seotags', 'dashstatus', 'videolink', 'thumblink', 'ytlink', 'schedule', 'reviewnotes', 'updatedat'];
-  return columns.indexOf(key.toLowerCase());
 }
 
 function getAnalytics() {
