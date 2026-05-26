@@ -1,48 +1,45 @@
 // ============================================
 // src/components/Upload/UploadZone.jsx
-// FIX: fetchStories import removed (was causing build error)
-// FIX: videoLink + thumbLink ek hi call mein save
-// FIX: dashStatus "uploaded" auto set hota hai
+// NEW: Fake progress bar during save
+// NEW: Auto send to review when both links saved
+// FIX: Single API call for both links
 // ============================================
 
 import { useState, useEffect } from "react";
-import { Link, CheckCircle, AlertTriangle, ExternalLink, ArrowRight } from "lucide-react";
+import { Link, CheckCircle, AlertTriangle, ExternalLink } from "lucide-react";
 import "./UploadZone.css";
-
-// Note: updateStory import nahi kiya — onUpdate prop use karo
-// jo App.jsx se editStory pass karta hai
 
 export default function UploadZone({
   story,
   stories,
   onSelectStory,
-  onUpdate,       // editStory from useStories
-  onMoveToUploaded,
+  onUpdate,
   onMoveToReview,
 }) {
-  const [videoLink, setVideoLink]         = useState("");
-  const [thumbLink, setThumbLink]         = useState("");
-  const [saving, setSaving]               = useState(false);
-  const [saved, setSaved]                 = useState(false);
-  const [sendingReview, setSendingReview] = useState(false);
-  const [error, setError]                 = useState("");
+  const [videoLink, setVideoLink] = useState("");
+  const [thumbLink, setThumbLink] = useState("");
+  const [saving, setSaving]       = useState(false);
+  const [progress, setProgress]   = useState(0);
+  const [statusMsg, setStatusMsg] = useState("");
+  const [done, setDone]           = useState(false);
+  const [error, setError]         = useState("");
 
-  // Story change hone par fields fill karo
   useEffect(() => {
     if (story) {
       setVideoLink(story.videoLink || "");
       setThumbLink(story.thumbLink || "");
-      setSaved(false);
+      setDone(false);
       setError("");
+      setProgress(0);
+      setStatusMsg("");
     }
-  }, [story?.id]);
+  }, [story]);
 
   const handleSelectStory = (id) => {
     const found = stories.find((s) => s.id === id);
     if (found) onSelectStory(found);
   };
 
-  // Basic Drive link check
   const isValidLink = (link) => {
     if (!link) return false;
     return (
@@ -52,57 +49,78 @@ export default function UploadZone({
     );
   };
 
-  // ---- SAVE LINKS ----
-  // FIX: Ek hi onUpdate call — dono links + dashStatus ek saath
+  // ---- Fake progress bar helper ----
+  // Saving ke doran progress bar animate hota hai
+  const runProgress = (stages) => {
+    return new Promise((resolve) => {
+      let i = 0;
+      const run = () => {
+        if (i >= stages.length) { resolve(); return; }
+        const [pct, msg, delay] = stages[i];
+        setProgress(pct);
+        setStatusMsg(msg);
+        i++;
+        setTimeout(run, delay);
+      };
+      run();
+    });
+  };
+
+  // ---- SAVE + AUTO REVIEW ----
   const handleSave = async () => {
     setError("");
-    setSaved(false);
+    setDone(false);
 
-    if (!story)                    { setError("Pehle story select karein"); return; }
-    if (!videoLink && !thumbLink)  { setError("Kam az kam ek link daalen"); return; }
+    if (!story)                   { setError("Pehle story select karein"); return; }
+    if (!videoLink && !thumbLink) { setError("Kam az kam ek link daalen"); return; }
     if (videoLink && !isValidLink(videoLink)) { setError("Video link valid nahi hai"); return; }
     if (thumbLink && !isValidLink(thumbLink)) { setError("Thumbnail link valid nahi hai"); return; }
 
     setSaving(true);
+    setProgress(0);
+
     try {
-      // Ek object mein sab kuch
+      // Stage 1: Links validate ho rahi hain
+      await runProgress([[15, "Links validate ho rahi hain…", 400]]);
+
+      // Stage 2: Sheet mein save ho raha hai
+      setProgress(30);
+      setStatusMsg("Sheet mein save ho raha hai…");
+
       const updates = {};
       if (videoLink) updates.videoLink = videoLink;
       if (thumbLink) updates.thumbLink = thumbLink;
 
-      // Dono links hain to status bhi set karo
-      if (videoLink && thumbLink) {
-        updates.dashStatus = "uploaded";
-      }
+      const bothPresent = !!(videoLink && thumbLink);
+      if (bothPresent) updates.dashStatus = "uploaded";
 
-      console.log("Saving to sheet:", story.id, updates);
+      // Actual API call
       await onUpdate(story.id, updates);
 
-      setSaved(true);
-      setTimeout(() => setSaved(false), 4000);
+      // Stage 3: Sheet write confirm
+      await runProgress([[70, "Sheet update hua…", 300]]);
+
+      // Stage 4: Agar dono links hain to auto review
+      if (bothPresent) {
+        setProgress(85);
+        setStatusMsg("Review queue mein bhej raha hoon…");
+        await onMoveToReview(story.id); // ✅ Auto send to review
+        await runProgress([[100, "✅ Review queue mein aa gaya!", 400]]);
+      } else {
+        await runProgress([[100, "✅ Links save ho gaye!", 400]]);
+      }
+
+      setDone(true);
     } catch (err) {
       console.error("Save error:", err);
       setError("Save fail: " + err.message);
+      setProgress(0);
+      setStatusMsg("");
     } finally {
       setSaving(false);
     }
   };
 
-  // ---- SEND TO REVIEW ----
-  const handleSendToReview = async () => {
-    if (!story) return;
-    setSendingReview(true);
-    setError("");
-    try {
-      await onMoveToReview(story.id);
-    } catch (err) {
-      setError("Review mein bhejne mein masla: " + err.message);
-    } finally {
-      setSendingReview(false);
-    }
-  };
-
-  const bothLinked = videoLink && thumbLink;
   const isUploaded = ["uploaded", "review", "approved", "scheduled", "published"]
     .includes(story?.dashStatus);
 
@@ -117,6 +135,7 @@ export default function UploadZone({
       <p className="section-desc">
         Google Drive mein files upload karein.
         Phir <strong>Share → Anyone with link → Copy</strong> karke paste karein.
+        Dono links save hone par story automatically Review queue mein chali jaegi.
       </p>
 
       {/* Guide */}
@@ -124,9 +143,9 @@ export default function UploadZone({
         <h4 className="guide-title">📋 Quick Guide</h4>
         <ol className="guide-steps">
           <li>Google Drive → <strong>New → File Upload</strong></li>
-          <li>File upload hone ke baad right-click → <strong>Share</strong></li>
-          <li><strong>Anyone with the link</strong> select karein</li>
-          <li><strong>Copy link</strong> karein aur yahan paste karein</li>
+          <li>Upload ke baad right-click → <strong>Share → Anyone with link</strong></li>
+          <li><strong>Copy link</strong> → yahan paste karein</li>
+          <li>Dono links save karne par ✅ auto Review mein jaegi</li>
         </ol>
       </div>
 
@@ -150,7 +169,6 @@ export default function UploadZone({
         </select>
       </div>
 
-      {/* Upload Form */}
       {story ? (
         <>
           <div className="upload-form panel">
@@ -179,15 +197,11 @@ export default function UploadZone({
                   value={videoLink}
                   onChange={(e) => setVideoLink(e.target.value)}
                   placeholder="https://drive.google.com/file/d/xxxxxxx/view"
+                  disabled={saving}
                 />
                 {videoLink && isValidLink(videoLink) && (
-                  <a
-                    href={videoLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-sm btn-icon"
-                    title="Drive mein dekhen"
-                  >
+                  <a href={videoLink} target="_blank" rel="noopener noreferrer"
+                    className="btn btn-sm btn-icon" title="Drive mein dekhen">
                     <ExternalLink size={14} />
                   </a>
                 )}
@@ -209,15 +223,11 @@ export default function UploadZone({
                   value={thumbLink}
                   onChange={(e) => setThumbLink(e.target.value)}
                   placeholder="https://drive.google.com/file/d/xxxxxxx/view"
+                  disabled={saving}
                 />
                 {thumbLink && isValidLink(thumbLink) && (
-                  <a
-                    href={thumbLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-sm btn-icon"
-                    title="Drive mein dekhen"
-                  >
+                  <a href={thumbLink} target="_blank" rel="noopener noreferrer"
+                    className="btn btn-sm btn-icon" title="Drive mein dekhen">
                     <ExternalLink size={14} />
                   </a>
                 )}
@@ -237,33 +247,36 @@ export default function UploadZone({
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="upload-btn-row">
-              <button
-                className="btn btn-primary"
-                onClick={handleSave}
-                disabled={saving || (!videoLink && !thumbLink)}
-              >
-                {saving ? "Saving…" : saved ? "✅ Saved!" : "💾 Save Links"}
-              </button>
+            {/* ============================================
+                PROGRESS BAR — saving ke doran dikhta hai
+                ============================================ */}
+            {saving && (
+              <div className="upload-progress">
+                <div className="upload-progress-bar">
+                  <div
+                    className="upload-progress-fill"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="upload-progress-msg">{statusMsg}</p>
+              </div>
+            )}
 
-              {/* Send to Review — uploaded ya saved ke baad */}
-              {(story.dashStatus === "uploaded" || (bothLinked && saved)) && (
-                <button
-                  className="btn btn-warning"
-                  onClick={handleSendToReview}
-                  disabled={sendingReview}
-                >
-                  <ArrowRight size={14} />
-                  {sendingReview ? "Bhej raha hoon…" : "📤 Send to Review"}
-                </button>
-              )}
-            </div>
+            {/* Save Button */}
+            <button
+              className="btn btn-primary"
+              onClick={handleSave}
+              disabled={saving || (!videoLink && !thumbLink)}
+            >
+              {saving ? `Processing… ${progress}%` :
+               done   ? "✅ Done!" :
+               "💾 Save Links"}
+            </button>
 
             {/* Tip */}
-            {(videoLink || thumbLink) && !bothLinked && (
+            {(videoLink || thumbLink) && !(videoLink && thumbLink) && !saving && (
               <p className="upload-tip">
-                💡 Dono links save karne se status automatically Uploaded ho jaata hai
+                💡 Dono links paste karein — save hone par auto Review mein jaegi
               </p>
             )}
           </div>

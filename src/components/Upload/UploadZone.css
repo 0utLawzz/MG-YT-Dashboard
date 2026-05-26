@@ -178,10 +178,47 @@
   border: 2px solid var(--accent);
 }
 
+/* ============================================
+   PROGRESS BAR — saving ke doran dikhta hai
+   ============================================ */
+.upload-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.upload-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent4));
+  transition: width 0.3s ease;
+}
+
+.upload-progress-msg {
+  font-size: 0.75rem;
+  color: var(--dim);
+  text-align: center;
+}
+
 .upload-btn-row {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.upload-tip {
+  font-size: 0.72rem;
+  color: var(--dimmer);
+  text-align: center;
+  margin-top: 0.5rem;
 }
 
 /* Complete banner */

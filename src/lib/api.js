@@ -1,15 +1,10 @@
 // ============================================
-// src/lib/api.js  — FIXED VERSION
-// ROOT CAUSE: Browser se Apps Script POST → CORS block
-// FIX: POST ki jagah GET + URL params use karo
-// Google Apps Script GET requests mein CORS nahi hoti
+// src/lib/api.js
+// FIX: rowId safety — agar object aaye to .id extract karo
 // ============================================
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxUN4BZX6pXpcABnTwvXRoMmhYiBvH444HL97AkfXKGx0oclJFPqbJtjC-YEfrQV96Pfw/exec";
 
-// ============================================
-// GET 1: Sari stories fetch karo
-// ============================================
 export async function fetchStories() {
   const url = `${SCRIPT_URL}?action=getAllStories`;
   const res = await fetch(url);
@@ -19,9 +14,6 @@ export async function fetchStories() {
   return data;
 }
 
-// ============================================
-// GET 2: Analytics fetch karo
-// ============================================
 export async function fetchAnalytics() {
   const url = `${SCRIPT_URL}?action=getAnalytics`;
   const res = await fetch(url);
@@ -31,27 +23,37 @@ export async function fetchAnalytics() {
   return data;
 }
 
-// ============================================
-// GET 3: Story update karo — GET params se
-// CORS fix: POST ki jagah GET use karo
-// rowId aur updates URL encode hokar jaate hain
-// ============================================
 export async function updateStory(rowId, updates) {
-  // updates object ko JSON string mein convert karo
-  // phir URL encode karo taake special chars safe rahein
-  const updatesParam = encodeURIComponent(JSON.stringify(updates));
-  const rowIdParam = encodeURIComponent(String(rowId));
+  // ============================================
+  // SAFETY FIX: rowId kabhi bhi object nahi hona chahiye
+  // Agar koi galti se poora story object pass kare
+  // to usse .id extract karo
+  // ============================================
+  let safeRowId;
+  if (typeof rowId === "object" && rowId !== null) {
+    console.warn("updateStory: rowId was an object! Extracting .id", rowId);
+    safeRowId = rowId.id; // story.id nikalo
+  } else {
+    safeRowId = rowId;
+  }
 
+  // String ensure karo
+  safeRowId = String(safeRowId).trim();
+
+  if (!safeRowId || safeRowId === "undefined" || safeRowId === "null") {
+    throw new Error("updateStory: valid rowId nahi mila — " + safeRowId);
+  }
+
+  const updatesParam = encodeURIComponent(JSON.stringify(updates));
+  const rowIdParam   = encodeURIComponent(safeRowId);
   const url = `${SCRIPT_URL}?action=updateStory&rowId=${rowIdParam}&updates=${updatesParam}`;
 
-  console.log("updateStory call:", { rowId, updates, url: url.substring(0, 150) + "..." });
+  console.log("updateStory →", safeRowId, updates);
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("Update fail: " + res.status);
-
   const data = await res.json();
-  console.log("updateStory response:", data);
-
+  console.log("updateStory ←", data);
   if (data.error) throw new Error(data.error);
   return data;
 }
