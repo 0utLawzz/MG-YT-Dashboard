@@ -44,13 +44,14 @@ export async function updateStory(rowId, updates) {
     headers: { "Content-Type": "text/plain" }, // Apps Script ke liye text/plain
     body: JSON.stringify({
       action: "updateStory",
-      rowId: rowId,
+      rowId: String(rowId), // Ensure rowId is string
       updates: updates,
     }),
   });
   if (!res.ok) throw new Error("Update fail: " + res.status);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
+  console.log("Update response:", data); // Debug log
   return data;
 }
 

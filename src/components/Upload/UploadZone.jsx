@@ -159,6 +159,7 @@ export default function UploadZone({
 
     setSaving(true);
     try {
+      console.log("Saving to sheet:", { id: story.id, videoLink, thumbLink }); // Debug log
       await onUpdate(story.id, {
         videoLink: videoLink,
         thumbLink: thumbLink,
