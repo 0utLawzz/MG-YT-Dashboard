@@ -1,166 +1,292 @@
 // ============================================
-// src/hooks/useStories.js — FIXED
-// FIX: editStory ek hi updateStory call karta hai
-// Pehle multiple calls hoti thin — race condition tha
+// src/components/Upload/UploadZone.jsx
+// FIX: fetchStories import removed (was causing build error)
+// FIX: videoLink + thumbLink ek hi call mein save
+// FIX: dashStatus "uploaded" auto set hota hai
 // ============================================
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { fetchStories, updateStory } from "../lib/api";
+import { useState, useEffect } from "react";
+import { Link, CheckCircle, AlertTriangle, ExternalLink, ArrowRight } from "lucide-react";
+import "./UploadZone.css";
 
-export const DASH_STATUSES = [
-  "pending",
-  "storyboard",
-  "uploaded",
-  "review",
-  "approved",
-  "scheduled",
-  "published",
-];
+// Note: updateStory import nahi kiya — onUpdate prop use karo
+// jo App.jsx se editStory pass karta hai
 
-export function useStories() {
-  const [stories, setStories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+export default function UploadZone({
+  story,
+  stories,
+  onSelectStory,
+  onUpdate,       // editStory from useStories
+  onMoveToUploaded,
+  onMoveToReview,
+}) {
+  const [videoLink, setVideoLink]         = useState("");
+  const [thumbLink, setThumbLink]         = useState("");
+  const [saving, setSaving]               = useState(false);
+  const [saved, setSaved]                 = useState(false);
+  const [sendingReview, setSendingReview] = useState(false);
+  const [error, setError]                 = useState("");
 
-  const loadStories = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchStories();
-      setStories(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Story change hone par fields fill karo
   useEffect(() => {
-    loadStories();
-  }, [loadStories]);
-
-  // ============================================
-  // editStory — main update function
-  // FIX: Pehle Sheet update karo, phir local state
-  // Optimistic update remove kiya — confusion hoti thi
-  // ============================================
-  const editStory = useCallback(async (rowId, updates) => {
-    try {
-      console.log("editStory:", rowId, updates);
-
-      // Sheet mein write karo
-      const result = await updateStory(rowId, updates);
-      console.log("editStory result:", result);
-
-      // Success ke baad local state update karo
-      setStories((prev) =>
-        prev.map((s) =>
-          s.id === rowId ? { ...s, ...updates } : s
-        )
-      );
-
-      return result;
-    } catch (err) {
-      console.error("editStory error:", err);
-      setError(err.message);
-      throw err;
+    if (story) {
+      setVideoLink(story.videoLink || "");
+      setThumbLink(story.thumbLink || "");
+      setSaved(false);
+      setError("");
     }
-  }, []);
+  }, [story?.id]);
 
-  // ---- Status shortcuts — sab editStory call karte hain ----
-  const moveToStoryboard = useCallback(
-    (rowId) => editStory(rowId, { dashStatus: "storyboard" }),
-    [editStory]
-  );
-
-  const moveToUploaded = useCallback(
-    (rowId) => editStory(rowId, { dashStatus: "uploaded" }),
-    [editStory]
-  );
-
-  const moveToReview = useCallback(
-    (rowId) => editStory(rowId, { dashStatus: "review" }),
-    [editStory]
-  );
-
-  const approveStory = useCallback(
-    (rowId, approvedBy = "Admin") =>
-      editStory(rowId, { dashStatus: "approved", approvedBy }),
-    [editStory]
-  );
-
-  const scheduleStory = useCallback(
-    (rowId, scheduleDateTime) =>
-      editStory(rowId, { dashStatus: "scheduled", schedule: scheduleDateTime }),
-    [editStory]
-  );
-
-  const publishStory = useCallback(
-    (rowId, ytLink = "") =>
-      editStory(rowId, { dashStatus: "published", ytLink }),
-    [editStory]
-  );
-
-  // ---- Filtered Stories ----
-  const filteredStories = useMemo(() => {
-    return stories.filter((s) => {
-      const q = searchQuery.toLowerCase();
-      const matchSearch =
-        !searchQuery ||
-        s.title?.toLowerCase().includes(q) ||
-        s.category?.toLowerCase().includes(q) ||
-        s.id?.toLowerCase().includes(q);
-      const matchStatus =
-        filterStatus === "all" || s.dashStatus === filterStatus;
-      return matchSearch && matchStatus;
-    });
-  }, [stories, searchQuery, filterStatus]);
-
-  // ---- Pipeline Counts ----
-  const pipelineCounts = useMemo(() => {
-    const counts = {};
-    DASH_STATUSES.forEach((s) => (counts[s] = 0));
-    stories.forEach((s) => {
-      const ds = s.dashStatus || "pending";
-      if (counts[ds] !== undefined) counts[ds]++;
-      else counts[ds] = 1;
-    });
-    return counts;
-  }, [stories]);
-
-  // ---- KPIs ----
-  const kpis = useMemo(() => {
-    const total = stories.length;
-    const published = stories.filter((s) => s.dashStatus === "published").length;
-    const scheduled = stories.filter((s) => s.dashStatus === "scheduled").length;
-    const approved  = stories.filter((s) => s.dashStatus === "approved").length;
-    const inReview  = stories.filter((s) => s.dashStatus === "review").length;
-    const uploaded  = stories.filter((s) => s.dashStatus === "uploaded").length;
-    const pending   = stories.filter((s) => s.dashStatus === "pending").length;
-    return { total, published, scheduled, approved, inReview, uploaded, pending };
-  }, [stories]);
-
-  return {
-    stories,
-    filteredStories,
-    loading,
-    error,
-    searchQuery,
-    setSearchQuery,
-    filterStatus,
-    setFilterStatus,
-    pipelineCounts,
-    kpis,
-    editStory,
-    moveToStoryboard,
-    moveToUploaded,
-    moveToReview,
-    approveStory,
-    scheduleStory,
-    publishStory,
-    refresh: loadStories,
-    statuses: DASH_STATUSES,
+  const handleSelectStory = (id) => {
+    const found = stories.find((s) => s.id === id);
+    if (found) onSelectStory(found);
   };
+
+  // Basic Drive link check
+  const isValidLink = (link) => {
+    if (!link) return false;
+    return (
+      link.includes("drive.google.com") ||
+      link.includes("docs.google.com") ||
+      /^[\w-]{25,}$/.test(link)
+    );
+  };
+
+  // ---- SAVE LINKS ----
+  // FIX: Ek hi onUpdate call — dono links + dashStatus ek saath
+  const handleSave = async () => {
+    setError("");
+    setSaved(false);
+
+    if (!story)                    { setError("Pehle story select karein"); return; }
+    if (!videoLink && !thumbLink)  { setError("Kam az kam ek link daalen"); return; }
+    if (videoLink && !isValidLink(videoLink)) { setError("Video link valid nahi hai"); return; }
+    if (thumbLink && !isValidLink(thumbLink)) { setError("Thumbnail link valid nahi hai"); return; }
+
+    setSaving(true);
+    try {
+      // Ek object mein sab kuch
+      const updates = {};
+      if (videoLink) updates.videoLink = videoLink;
+      if (thumbLink) updates.thumbLink = thumbLink;
+
+      // Dono links hain to status bhi set karo
+      if (videoLink && thumbLink) {
+        updates.dashStatus = "uploaded";
+      }
+
+      console.log("Saving to sheet:", story.id, updates);
+      await onUpdate(story.id, updates);
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 4000);
+    } catch (err) {
+      console.error("Save error:", err);
+      setError("Save fail: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ---- SEND TO REVIEW ----
+  const handleSendToReview = async () => {
+    if (!story) return;
+    setSendingReview(true);
+    setError("");
+    try {
+      await onMoveToReview(story.id);
+    } catch (err) {
+      setError("Review mein bhejne mein masla: " + err.message);
+    } finally {
+      setSendingReview(false);
+    }
+  };
+
+  const bothLinked = videoLink && thumbLink;
+  const isUploaded = ["uploaded", "review", "approved", "scheduled", "published"]
+    .includes(story?.dashStatus);
+
+  return (
+    <section
+      className="upload-section animate-fade-in"
+      id="panel-upload"
+      role="tabpanel"
+      aria-labelledby="tab-upload"
+    >
+      <h2 className="section-title">⬆️ Upload Assets</h2>
+      <p className="section-desc">
+        Google Drive mein files upload karein.
+        Phir <strong>Share → Anyone with link → Copy</strong> karke paste karein.
+      </p>
+
+      {/* Guide */}
+      <div className="upload-guide panel">
+        <h4 className="guide-title">📋 Quick Guide</h4>
+        <ol className="guide-steps">
+          <li>Google Drive → <strong>New → File Upload</strong></li>
+          <li>File upload hone ke baad right-click → <strong>Share</strong></li>
+          <li><strong>Anyone with the link</strong> select karein</li>
+          <li><strong>Copy link</strong> karein aur yahan paste karein</li>
+        </ol>
+      </div>
+
+      {/* Story Selector */}
+      <div className="upload-story-selector panel">
+        <label className="form-label" htmlFor="upload-story-select">
+          Story Select Karein
+        </label>
+        <select
+          className="input"
+          id="upload-story-select"
+          value={story?.id || ""}
+          onChange={(e) => handleSelectStory(e.target.value)}
+        >
+          <option value="">-- Story chunein --</option>
+          {stories.map((s) => (
+            <option key={s.id} value={s.id}>
+              [{s.dashStatus?.toUpperCase()}] {s.id} — {s.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Upload Form */}
+      {story ? (
+        <>
+          <div className="upload-form panel">
+            <h3 className="upload-story-name">
+              {story.title}
+              <span
+                className={`badge badge-${
+                  story.dashStatus === "uploaded" ? "complete" :
+                  story.dashStatus === "review"   ? "review"   : "draft"
+                }`}
+                style={{ marginLeft: "0.75rem" }}
+              >
+                {story.dashStatus?.toUpperCase()}
+              </span>
+            </h3>
+
+            {/* Video Link */}
+            <div className="form-group">
+              <label className="form-label" htmlFor="video-link">
+                🎬 Video Drive Link
+              </label>
+              <div className="link-input-row">
+                <input
+                  className="input"
+                  id="video-link"
+                  value={videoLink}
+                  onChange={(e) => setVideoLink(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/xxxxxxx/view"
+                />
+                {videoLink && isValidLink(videoLink) && (
+                  <a
+                    href={videoLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-icon"
+                    title="Drive mein dekhen"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+              {videoLink && !isValidLink(videoLink) && (
+                <p className="link-warning">⚠️ Valid Drive link nahi lagti</p>
+              )}
+            </div>
+
+            {/* Thumbnail Link */}
+            <div className="form-group">
+              <label className="form-label" htmlFor="thumb-link">
+                🖼️ Thumbnail Drive Link
+              </label>
+              <div className="link-input-row">
+                <input
+                  className="input"
+                  id="thumb-link"
+                  value={thumbLink}
+                  onChange={(e) => setThumbLink(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/xxxxxxx/view"
+                />
+                {thumbLink && isValidLink(thumbLink) && (
+                  <a
+                    href={thumbLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-icon"
+                    title="Drive mein dekhen"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+              <p className="form-hint">
+                <Link size={12} /> 1280×720px PNG/JPG recommended
+              </p>
+              {thumbLink && !isValidLink(thumbLink) && (
+                <p className="link-warning">⚠️ Valid Drive link nahi lagti</p>
+              )}
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="upload-error">
+                <AlertTriangle size={14} /> {error}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="upload-btn-row">
+              <button
+                className="btn btn-primary"
+                onClick={handleSave}
+                disabled={saving || (!videoLink && !thumbLink)}
+              >
+                {saving ? "Saving…" : saved ? "✅ Saved!" : "💾 Save Links"}
+              </button>
+
+              {/* Send to Review — uploaded ya saved ke baad */}
+              {(story.dashStatus === "uploaded" || (bothLinked && saved)) && (
+                <button
+                  className="btn btn-warning"
+                  onClick={handleSendToReview}
+                  disabled={sendingReview}
+                >
+                  <ArrowRight size={14} />
+                  {sendingReview ? "Bhej raha hoon…" : "📤 Send to Review"}
+                </button>
+              )}
+            </div>
+
+            {/* Tip */}
+            {(videoLink || thumbLink) && !bothLinked && (
+              <p className="upload-tip">
+                💡 Dono links save karne se status automatically Uploaded ho jaata hai
+              </p>
+            )}
+          </div>
+
+          {/* Status banner */}
+          {isUploaded && (
+            <div className="upload-complete-banner panel">
+              <CheckCircle size={20} style={{ color: "var(--accent4)" }} />
+              <span>
+                Assets linked! Status:{" "}
+                <strong style={{ color: "var(--accent4)" }}>
+                  {story.dashStatus?.toUpperCase()}
+                </strong>
+              </span>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="upload-placeholder panel">
+          <Link size={48} style={{ color: "var(--dimmer)" }} />
+          <p>Upar se story select karein phir Drive links paste karein</p>
+        </div>
+      )}
+    </section>
+  );
 }
