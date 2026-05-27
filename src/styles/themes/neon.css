@@ -1,0 +1,21 @@
+.theme-neon {
+  --bg: #09090b;
+  --bg2: #000000;
+  --panel: #18181b;
+  --panel-hover: #27272a;
+  --border: #3f3f46;
+  --border-thin: 2px solid #3f3f46;
+  --border-thick: 4px solid #3f3f46;
+  --accent: #f43f5e;
+  --accent2: #0ea5e9;
+  --accent3: #f59e0b;
+  --accent4: #10b981;
+  --accent5: #d946ef;
+  --text: #f8fafc;
+  --dim: rgba(255, 255, 255, 0.7);
+  --dimmer: rgba(255, 255, 255, 0.4);
+  --shadow: 0 0 15px var(--accent);
+  --shadow-accent: 0 0 25px var(--accent);
+  --shadow-sm: 0 0 8px var(--accent);
+  --radius: 8px;
+}

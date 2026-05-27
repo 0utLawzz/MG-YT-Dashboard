@@ -13,6 +13,7 @@ import {
   Tooltip, Legend,
 } from "chart.js";
 import { Bar, Doughnut } from "react-chartjs-2";
+import { useTheme } from '../../context/ThemeContext';
 import "./Analytics.css";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
@@ -39,35 +40,49 @@ const donutOpts = {
   },
 };
 
-// Status → color map
-const STATUS_COLORS = {
-  pending:    "rgba(255,255,255,0.3)",
-  storyboard: "rgba(0,229,255,0.8)",
-  uploaded:   "rgba(255,234,0,0.8)",
-  review:     "rgba(255,23,68,0.8)",
-  approved:   "rgba(118,255,3,0.8)",
-  scheduled:  "rgba(255,234,0,0.6)",
-  published:  "rgba(224,64,251,0.8)",
-};
 
 export default function Analytics({ stories, pipelineCounts }) {
+  const { theme } = useTheme();
+  const safeStories = Array.isArray(stories) ? stories : [];
+  const safePipeline = pipelineCounts || {};
+  const themeColors = useMemo(() => {
+    const style = getComputedStyle(document.body);
+    return {
+      dim: style.getPropertyValue('--dim').trim() || 'rgba(255,255,255,0.3)',
+      accent: style.getPropertyValue('--accent').trim() || 'rgba(255,23,68,0.8)',
+      accent2: style.getPropertyValue('--accent2').trim() || 'rgba(0,229,255,0.8)',
+      accent3: style.getPropertyValue('--accent3').trim() || 'rgba(255,234,0,0.8)',
+      accent4: style.getPropertyValue('--accent4').trim() || 'rgba(118,255,3,0.8)',
+      accent5: style.getPropertyValue('--accent5').trim() || 'rgba(224,64,251,0.8)',
+    };
+  }, [theme]);
+
+  const STATUS_COLORS = useMemo(() => ({
+    pending: themeColors.dim,
+    storyboard: themeColors.accent2,
+    uploaded: themeColors.accent3,
+    review: themeColors.accent,
+    approved: themeColors.accent4,
+    scheduled: themeColors.accent3,
+    published: themeColors.accent5,
+  }), [themeColors]);
 
   // ---- Pipeline Bar Chart ----
   const pipelineData = useMemo(() => ({
-    labels: Object.keys(pipelineCounts).map((s) => s.toUpperCase()),
+    labels: Object.keys(safePipeline).map((s) => s.toUpperCase()),
     datasets: [{
       label: "Stories",
-      data: Object.values(pipelineCounts),
-      backgroundColor: Object.keys(pipelineCounts).map((s) => STATUS_COLORS[s] || "#666"),
+      data: Object.values(safePipeline),
+      backgroundColor: Object.keys(safePipeline).map((s) => STATUS_COLORS[s] || "#666"),
       borderColor: "#fff",
       borderWidth: 2,
     }],
-  }), [pipelineCounts]);
+  }), [safePipeline, STATUS_COLORS]);
 
   // ---- Category Breakdown ----
   const categoryData = useMemo(() => {
     const cats = {};
-    stories.forEach((s) => {
+    safeStories.forEach((s) => {
       const c = s.category || "Unknown";
       cats[c] = (cats[c] || 0) + 1;
     });
@@ -76,26 +91,26 @@ export default function Analytics({ stories, pipelineCounts }) {
       datasets: [{
         data: Object.values(cats),
         backgroundColor: [
-          "rgba(0,229,255,0.8)", "rgba(118,255,3,0.8)",
-          "rgba(224,64,251,0.8)", "rgba(255,234,0,0.8)",
-          "rgba(255,23,68,0.8)", "rgba(255,152,0,0.8)",
+          themeColors.accent, themeColors.accent2,
+          themeColors.accent3, themeColors.accent4,
+          themeColors.accent5, themeColors.dim,
         ],
         borderColor: "#1A1A1A",
         borderWidth: 3,
       }],
     };
-  }, [stories]);
+  }, [safeStories]);
 
   // ---- KPI Summary ----
-  const total = stories.length;
-  const published = stories.filter((s) => s.dashStatus === "published").length;
-  const inProgress = stories.filter((s) =>
+  const total = safeStories.length;
+  const published = safeStories.filter((s) => s.dashStatus === "published").length;
+  const inProgress = safeStories.filter((s) =>
     ["storyboard", "uploaded", "review"].includes(s.dashStatus)
   ).length;
   const completionRate = total > 0 ? Math.round((published / total) * 100) : 0;
 
   // ---- Recently Updated ----
-  const recentlyUpdated = [...stories]
+  const recentlyUpdated = [...safeStories]
     .filter((s) => s.updatedAt)
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .slice(0, 5);
@@ -178,7 +193,7 @@ export default function Analytics({ stories, pipelineCounts }) {
               </tr>
             </thead>
             <tbody>
-              {stories.map((s) => (
+              {safeStories.map((s) => (
                 <tr key={s.id}>
                   <td className="mono">{s.id}</td>
                   <td className="an-title">{s.title}</td>

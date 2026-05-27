@@ -1,29 +1,16 @@
 /* ============================================
    BRIGHT LITTLE STORIES – Global Styles
-   Dark Brutalist Theme
    ============================================ */
 
-/* --- CSS Custom Properties --- */
+/* --- Themes --- */
+@import './themes/dark.css';
+@import './themes/light.css';
+@import './themes/neon.css';
+@import './themes/midnight.css';
+@import './themes/glass.css';
+
+/* --- Default CSS Custom Properties (Non-theme) --- */
 :root {
-  --bg: #1A1A1A;
-  --bg2: #141414;
-  --panel: #2D2D2D;
-  --panel-hover: #383838;
-  --border: #FFFFFF;
-  --border-thin: 2px solid #FFFFFF;
-  --border-thick: 4px solid #FFFFFF;
-  --accent: #FF1744;
-  --accent2: #00E5FF;
-  --accent3: #FFEA00;
-  --accent4: #76FF03;
-  --accent5: #E040FB;
-  --text: #FFFFFF;
-  --dim: rgba(255, 255, 255, 0.7);
-  --dimmer: rgba(255, 255, 255, 0.4);
-  --shadow: 6px 6px 0px rgba(0, 0, 0, 0.8);
-  --shadow-accent: 6px 6px 0px var(--accent);
-  --shadow-sm: 3px 3px 0px rgba(0, 0, 0, 0.6);
-  --radius: 0px;
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Poppins', 'Inter', sans-serif;

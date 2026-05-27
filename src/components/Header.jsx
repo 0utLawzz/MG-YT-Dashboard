@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Plus, Settings, Sparkles, Clock, FileSpreadsheet } from 'lucide-react';
+import { RefreshCw, Plus, Settings, Sparkles, Clock, FileSpreadsheet, LogOut } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import './Header.css';
 
 export default function Header({ onRefresh, onAddStory, onImportSheet, onToggleSettings }) {
   const [time, setTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
+  const { signOut } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -79,6 +81,16 @@ export default function Header({ onRefresh, onAddStory, onImportSheet, onToggleS
           id="btn-settings"
         >
           <Settings size={18} />
+        </button>
+
+        <button
+          className="btn btn-sm btn-icon btn-danger"
+          onClick={signOut}
+          aria-label="Sign out"
+          id="btn-signout"
+          title="Sign out"
+        >
+          <LogOut size={18} />
         </button>
       </div>
     </header>

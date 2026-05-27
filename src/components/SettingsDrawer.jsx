@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Save, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import './SettingsDrawer.css';
 
 const DEFAULT_CONFIG = {
@@ -8,7 +9,9 @@ const DEFAULT_CONFIG = {
   googleClientId: '',
   driveFolderId: '',
   youtubePlaylistId: '',
-  defaultAgeGroup: '2-6',
+  driveApiKey: '',
+  youtubeApiKey: '',
+  analyticApiKey: '',
   autoSave: true,
 };
 
@@ -28,6 +31,7 @@ export default function SettingsDrawer({ open, onClose }) {
 
   const handleSave = () => {
     localStorage.setItem('bls_config', JSON.stringify(config));
+    toast.success('Settings saved! Reload the page for API/URL changes to take effect.');
     onClose();
   };
 
@@ -43,13 +47,16 @@ export default function SettingsDrawer({ open, onClose }) {
       <div className="drawer-overlay" onClick={onClose}></div>
       <aside className="settings-drawer" role="dialog" aria-label="Settings" id="settings-drawer">
         <div className="drawer-header">
-          <h2 className="drawer-title">⚙️ Settings</h2>
+          <h2 className="drawer-title">⚙️ Global Configurations</h2>
           <button className="btn btn-sm btn-icon" onClick={onClose} aria-label="Close settings">
             <X size={18} />
           </button>
         </div>
 
         <div className="drawer-body">
+          
+          <h4 style={{ margin: "0.5rem 0", color: "var(--accent2)" }}>Endpoints</h4>
+          
           <div className="form-group">
             <label className="form-label" htmlFor="cfg-api-url">API Base URL</label>
             <input
@@ -72,8 +79,10 @@ export default function SettingsDrawer({ open, onClose }) {
             />
           </div>
 
+          <h4 style={{ margin: "1rem 0 0.5rem 0", color: "var(--accent3)" }}>Google Identity & Drive</h4>
+
           <div className="form-group">
-            <label className="form-label" htmlFor="cfg-client-id">Google Client ID</label>
+            <label className="form-label" htmlFor="cfg-client-id">Google Client ID (OAuth)</label>
             <input
               className="input"
               id="cfg-client-id"
@@ -93,6 +102,19 @@ export default function SettingsDrawer({ open, onClose }) {
               placeholder="Folder ID from Google Drive URL"
             />
           </div>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="cfg-drive-key">Drive API Key (Manual)</label>
+            <input
+              className="input"
+              id="cfg-drive-key"
+              value={config.driveApiKey}
+              onChange={e => handleChange('driveApiKey', e.target.value)}
+              placeholder="AIzaSy..."
+            />
+          </div>
+
+          <h4 style={{ margin: "1rem 0 0.5rem 0", color: "var(--accent5)" }}>YouTube & Analytics</h4>
 
           <div className="form-group">
             <label className="form-label" htmlFor="cfg-yt-playlist">YouTube Playlist ID</label>
@@ -104,25 +126,30 @@ export default function SettingsDrawer({ open, onClose }) {
               placeholder="PLxxxx..."
             />
           </div>
-
+          
           <div className="form-group">
-            <label className="form-label" htmlFor="cfg-age-group">Default Age Group</label>
-            <select
+            <label className="form-label" htmlFor="cfg-yt-key">YouTube API Key (Manual)</label>
+            <input
               className="input"
-              id="cfg-age-group"
-              value={config.defaultAgeGroup}
-              onChange={e => handleChange('defaultAgeGroup', e.target.value)}
-            >
-              <option value="1-3">1-3 years</option>
-              <option value="2-4">2-4 years</option>
-              <option value="2-6">2-6 years</option>
-              <option value="3-5">3-5 years</option>
-              <option value="3-6">3-6 years</option>
-              <option value="4-6">4-6 years</option>
-            </select>
+              id="cfg-yt-key"
+              value={config.youtubeApiKey}
+              onChange={e => handleChange('youtubeApiKey', e.target.value)}
+              placeholder="AIzaSy..."
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="cfg-analytics-key">Analytics Dashboard Key</label>
+            <input
+              className="input"
+              id="cfg-analytics-key"
+              value={config.analyticApiKey}
+              onChange={e => handleChange('analyticApiKey', e.target.value)}
+              placeholder="Custom key to unlock raw analytics..."
+            />
           </div>
 
-          <div className="form-group form-row">
+          <div className="form-group form-row" style={{ marginTop: "1rem" }}>
             <label className="form-label" htmlFor="cfg-autosave">Auto-save changes</label>
             <label className="toggle-switch">
               <input

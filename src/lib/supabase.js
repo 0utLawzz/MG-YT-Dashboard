@@ -1,10 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
+import { ENV } from './config/env';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = ENV.SUPABASE_URL;
+const supabaseAnonKey = ENV.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials missing in .env file');
+let supabase = null;
+
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (err) {
+    console.warn('[BLS-SUPABASE] Failed to initialize Supabase client:', err.message);
+  }
+} else {
+  console.warn('[BLS-SUPABASE] Supabase credentials missing — client disabled');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export { supabase };

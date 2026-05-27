@@ -3,8 +3,9 @@
  * Handles YouTube Data API and Google Sheets API interactions
  */
 
-const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+import { ENV } from './config/env';
+
+const GOOGLE_API_KEY = ENV.GOOGLE_API_KEY;
 
 /**
  * Fetch data from a Google Sheet (Read-only via API Key)
@@ -28,8 +29,8 @@ export async function fetchSheetData(spreadsheetId, range = 'Sheet1!A:Z') {
  * YouTube Upload Helper (Skeleton)
  * Real implementation requires OAuth2 token flow
  */
+// eslint-disable-next-line no-unused-vars
 export async function uploadToYouTube(metadata, videoBlob) {
-  console.log('Publishing to YouTube with metadata:', metadata);
   // This would typically use the YouTube Data API v3 upload endpoint
   // with a multipart/resumable upload strategy.
 }

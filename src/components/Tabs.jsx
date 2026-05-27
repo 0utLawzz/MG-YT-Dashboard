@@ -9,7 +9,6 @@ const TABS = [
   { id: "dashboard",  label: "Dashboard",  icon: "📊" },
   { id: "stories",    label: "Stories",    icon: "📖" },
   { id: "storyboard", label: "Storyboard", icon: "🎬" },
-  { id: "upload",     label: "Upload",     icon: "⬆️" },
   { id: "review",     label: "Review",     icon: "✅" },
   { id: "publish",    label: "Publish",    icon: "🚀" },
   { id: "analytics",  label: "Analytics",  icon: "📈" },

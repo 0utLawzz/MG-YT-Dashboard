@@ -1,43 +1,76 @@
 // ============================================
 // src/lib/api.js
-// FIX: rowId safety — agar object aaye to .id extract karo
+// Hardened API layer with array guards and
+// structured logging for all data operations
 // ============================================
+import { ENV } from './config/env';
+import { apiClient } from './api/client';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxUN4BZX6pXpcABnTwvXRoMmhYiBvH444HL97AkfXKGx0oclJFPqbJtjC-YEfrQV96Pfw/exec";
+function dataLog(level, message, data) {
+  const prefix = `[BLS-DATA][${new Date().toISOString()}]`;
+  if (level === 'error') console.error(prefix, message, data ?? '');
+  else if (level === 'warn') console.warn(prefix, message, data ?? '');
+  else console.log(prefix, message, data ?? '');
+}
 
 export async function fetchStories() {
-  const url = `${SCRIPT_URL}?action=getAllStories`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Sheet se data nahi aaya: " + res.status);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
+  const url = `${ENV.SCRIPT_URL}?action=getAllStories`;
+  dataLog('info', 'Fetching stories...', { url: url.substring(0, 80) });
+
+  const data = await apiClient.get(url);
+
+  // Guard: GAS sometimes returns { error: "..." }
+  if (data?.error) {
+    dataLog('error', 'Server returned error', data.error);
+    throw new Error(data.error);
+  }
+
+  // Guard: Ensure we always return an array
+  if (!Array.isArray(data)) {
+    dataLog('warn', 'fetchStories: response is not an array, wrapping', {
+      type: typeof data,
+      value: data,
+    });
+    // If it's an object with a data/rows property, try to extract
+    if (data?.data && Array.isArray(data.data)) return data.data;
+    if (data?.rows && Array.isArray(data.rows)) return data.rows;
+    if (data?.stories && Array.isArray(data.stories)) return data.stories;
+    // If it's null/undefined, return empty
+    if (!data) return [];
+    // Unknown shape — return empty to prevent crash
+    dataLog('error', 'fetchStories: unexpected response shape', data);
+    return [];
+  }
+
+  dataLog('info', `Fetched ${data.length} stories`);
   return data;
 }
 
 export async function fetchAnalytics() {
-  const url = `${SCRIPT_URL}?action=getAnalytics`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Analytics nahi aaya");
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
+  const url = `${ENV.SCRIPT_URL}?action=getAnalytics`;
+  dataLog('info', 'Fetching analytics...');
+
+  const data = await apiClient.get(url);
+  if (data?.error) throw new Error(data.error);
+
+  // Guard: ensure analytics is usable
+  if (!data) {
+    dataLog('warn', 'fetchAnalytics: empty response');
+    return {};
+  }
   return data;
 }
 
 export async function updateStory(rowId, updates) {
-  // ============================================
-  // SAFETY FIX: rowId kabhi bhi object nahi hona chahiye
-  // Agar koi galti se poora story object pass kare
-  // to usse .id extract karo
-  // ============================================
+  // SAFETY: rowId kabhi bhi object nahi hona chahiye
   let safeRowId;
   if (typeof rowId === "object" && rowId !== null) {
-    console.warn("updateStory: rowId was an object! Extracting .id", rowId);
-    safeRowId = rowId.id; // story.id nikalo
+    dataLog('warn', 'updateStory: rowId was an object, extracting .id', rowId);
+    safeRowId = rowId.id;
   } else {
     safeRowId = rowId;
   }
 
-  // String ensure karo
   safeRowId = String(safeRowId).trim();
 
   if (!safeRowId || safeRowId === "undefined" || safeRowId === "null") {
@@ -46,15 +79,12 @@ export async function updateStory(rowId, updates) {
 
   const updatesParam = encodeURIComponent(JSON.stringify(updates));
   const rowIdParam   = encodeURIComponent(safeRowId);
-  const url = `${SCRIPT_URL}?action=updateStory&rowId=${rowIdParam}&updates=${updatesParam}`;
+  const url = `${ENV.SCRIPT_URL}?action=updateStory&rowId=${rowIdParam}&updates=${updatesParam}`;
 
-  console.log("updateStory →", safeRowId, updates);
+  dataLog('info', 'Updating story', { rowId: safeRowId, updates });
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Update fail: " + res.status);
-  const data = await res.json();
-  console.log("updateStory ←", data);
-  if (data.error) throw new Error(data.error);
+  const data = await apiClient.get(url);
+  if (data?.error) throw new Error(data.error);
   return data;
 }
 
@@ -75,4 +105,14 @@ export function getDriveEmbedLink(driveUrl) {
   const match = driveUrl.match(/\/d\/([\w-]+)/);
   if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
   return driveUrl;
+}
+
+// -------------------------------------------------
+// Post video to YouTube via Apps Script (if available)
+// -------------------------------------------------
+export async function postToYouTube(videoId, metadata = {}) {
+  const url = `${ENV.SCRIPT_URL}?action=publishVideo&videoId=${encodeURIComponent(videoId)}&metadata=${encodeURIComponent(JSON.stringify(metadata))}`;
+  const data = await apiClient.get(url);
+  if (data?.error) throw new Error(data.error);
+  return data;
 }

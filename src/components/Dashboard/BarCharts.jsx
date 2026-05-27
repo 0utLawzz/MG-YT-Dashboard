@@ -1,34 +1,58 @@
+import { useMemo } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { useTheme } from '../../context/ThemeContext';
 import './BarCharts.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 export default function BarCharts({ stories }) {
-  // Views by published stories
-  const published = stories.filter(s => s.status === 'published');
+  const { theme } = useTheme();
+  const safeStories = Array.isArray(stories) ? stories : [];
+  const published = safeStories.filter(s => s.dashStatus === 'published');
   
+  const colors = useMemo(() => {
+    const style = getComputedStyle(document.body);
+    return {
+      accent: style.getPropertyValue('--accent').trim() || '#FF1744',
+      accent2: style.getPropertyValue('--accent2').trim() || '#00E5FF',
+      accent3: style.getPropertyValue('--accent3').trim() || '#FFEA00',
+    };
+  }, [theme]);
+
+  // Empty state: no published stories yet
+  if (published.length === 0) {
+    return (
+      <div className="bar-charts panel">
+        <h3 className="chart-title">Performance Metrics</h3>
+        <p style={{ color: 'var(--dimmer)', textAlign: 'center', padding: '2rem 0' }}>
+          No published stories yet — publish stories to see performance data
+        </p>
+      </div>
+    );
+  }
+
   const viewsData = {
-    labels: published.map(s => s.title.length > 15 ? s.title.slice(0, 15) + '…' : s.title),
+    labels: published.map(s => (s.title || 'Untitled').length > 15 ? s.title.slice(0, 15) + '…' : (s.title || 'Untitled')),
     datasets: [{
       label: 'Views',
       data: published.map(s => s.views || 0),
-      backgroundColor: '#00E5FF',
+      backgroundColor: colors.accent2,
       borderColor: '#FFFFFF',
       borderWidth: 2,
-      hoverBackgroundColor: '#FF1744',
+      hoverBackgroundColor: colors.accent,
     }],
   };
 
   const likesData = {
-    labels: published.map(s => s.title.length > 15 ? s.title.slice(0, 15) + '…' : s.title),
+    labels: published.map(s => (s.title || 'Untitled').length > 15 ? s.title.slice(0, 15) + '…' : (s.title || 'Untitled')),
     datasets: [{
       label: 'Likes',
       data: published.map(s => s.likes || 0),
-      backgroundColor: '#FFEA00',
+      backgroundColor: colors.accent3,
       borderColor: '#FFFFFF',
       borderWidth: 2,
-      hoverBackgroundColor: '#FF1744',
+      hoverBackgroundColor: colors.accent,
     }],
   };
 

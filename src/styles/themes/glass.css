@@ -1,0 +1,25 @@
+.theme-glass {
+  --bg: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+  --bg2: transparent;
+  --panel: rgba(255, 255, 255, 0.25);
+  --panel-hover: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.5);
+  --border-thin: 1px solid rgba(255, 255, 255, 0.5);
+  --border-thick: 2px solid rgba(255, 255, 255, 0.6);
+  --accent: #ff4757;
+  --accent2: #1e90ff;
+  --accent3: #ffa502;
+  --accent4: #2ed573;
+  --accent5: #9c88ff;
+  --text: #2f3542;
+  --dim: rgba(47, 53, 66, 0.7);
+  --dimmer: rgba(47, 53, 66, 0.4);
+  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  --shadow-accent: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
+  --shadow-sm: 0 4px 16px 0 rgba(31, 38, 135, 0.2);
+  --radius: 16px;
+}
+.theme-glass .panel {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}

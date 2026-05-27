@@ -4,7 +4,9 @@
 // OAuth 2.0 flow + file upload functions
 // ============================================
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+import { ENV } from './config/env';
+
+const GOOGLE_CLIENT_ID = ENV.GOOGLE_CLIENT_ID;
 const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 // Token storage key

@@ -1,10 +1,19 @@
 // ============================================
 // src/hooks/useStories.js
-// Sheet-based state management — NO JSX here
+// Sheet-based state management with structured logging
 // ============================================
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { fetchStories, updateStory } from "../lib/api";
+import { publishService } from "../services/publishService";
+
+function storyLog(level, message, data) {
+  const prefix = `[BLS-STORIES][${new Date().toISOString()}]`;
+  if (level === 'error') console.error(prefix, message, data ?? '');
+  else if (level === 'warn') console.warn(prefix, message, data ?? '');
+  else console.log(prefix, message, data ?? '');
+}
 
 export const DASH_STATUSES = [
   "pending",
@@ -12,6 +21,8 @@ export const DASH_STATUSES = [
   "uploaded",
   "review",
   "approved",
+  "publishing",
+  "publish_failed",
   "scheduled",
   "published",
 ];
@@ -25,13 +36,21 @@ export function useStories() {
 
   // ---- Fetch all stories from Sheet ----
   const loadStories = useCallback(async () => {
+    storyLog('info', 'Loading stories...');
     setLoading(true);
     setError(null);
     try {
       const data = await fetchStories();
-      setStories(data);
+
+      // Final safety: ensure array
+      const safeData = Array.isArray(data) ? data : [];
+      storyLog('info', `Loaded ${safeData.length} stories`);
+
+      setStories(safeData);
     } catch (err) {
+      storyLog('error', 'Failed to load stories', err.message);
       setError(err.message);
+      toast.error(`Failed to load stories: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -44,17 +63,19 @@ export function useStories() {
   // ---- Update story: Sheet first, then local state ----
   const editStory = useCallback(async (rowId, updates) => {
     try {
-      console.log("editStory calling:", rowId, updates);
+      storyLog('info', 'Updating story', { rowId, updates });
       const result = await updateStory(rowId, updates);
-      console.log("editStory result:", result);
+
       // Local state update on success
       setStories((prev) =>
         prev.map((s) => (s.id === rowId ? { ...s, ...updates } : s))
       );
+      toast.success('Story updated successfully');
       return result;
     } catch (err) {
-      console.error("editStory error:", err);
+      storyLog('error', 'editStory failed', err.message);
       setError(err.message);
+      toast.error(`Update failed: ${err.message}`);
       throw err;
     }
   }, []);
@@ -76,8 +97,14 @@ export function useStories() {
   );
 
   const approveStory = useCallback(
-    (rowId, approvedBy = "Admin") =>
-      editStory(rowId, { dashStatus: "approved", approvedBy }),
+    async (rowId, approvedBy = "Admin") => {
+      const res = await editStory(rowId, { dashStatus: "approved", approvedBy });
+      // Automatically trigger the publish pipeline in the background
+      publishService.publishStory(rowId, editStory).catch(err => {
+        storyLog('error', 'Publish pipeline failed', err);
+      });
+      return res;
+    },
     [editStory]
   );
 
@@ -101,7 +128,7 @@ export function useStories() {
         !searchQuery ||
         s.title?.toLowerCase().includes(q) ||
         s.category?.toLowerCase().includes(q) ||
-        s.id?.toLowerCase().includes(q);
+        s.id?.toLowerCase?.().includes(q);
       const matchStatus =
         filterStatus === "all" || s.dashStatus === filterStatus;
       return matchSearch && matchStatus;
@@ -129,7 +156,9 @@ export function useStories() {
     const inReview  = stories.filter((s) => s.dashStatus === "review").length;
     const uploaded  = stories.filter((s) => s.dashStatus === "uploaded").length;
     const pending   = stories.filter((s) => s.dashStatus === "pending").length;
-    return { total, published, scheduled, approved, inReview, uploaded, pending };
+    const publishing= stories.filter((s) => s.dashStatus === "publishing").length;
+    const failed    = stories.filter((s) => s.dashStatus === "publish_failed").length;
+    return { total, published, scheduled, approved, inReview, uploaded, pending, publishing, failed };
   }, [stories]);
 
   return {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle, RotateCcw, Edit3, ExternalLink, Save, X, Play, Image } from "lucide-react";
+import { CheckCircle, RotateCcw, Edit3, ExternalLink, Save, X, Image as ImageIcon } from "lucide-react";
 import { getDriveEmbedLink, getDriveDirectLink } from "../../lib/api";
 import "./ReviewCard.css";
 
@@ -7,31 +7,26 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
   const [editingId, setEditingId]   = useState(null);
   const [editNotes, setEditNotes]   = useState("");
   const [approving, setApproving]   = useState(null);
-  const [previewId, setPreviewId]   = useState(null); // mini preview toggle
 
   const reviewable = stories.filter((s) => s.dashStatus === "review");
 
-  // FIX: story.id pass karo — story object nahi
   const handleApprove = async (story) => {
     setApproving(story.id);
     try {
-      await onApprove(story.id, "Admin"); // ✅ story.id = string "Row-001-01"
+      await onApprove(story.id, "Admin");
     } finally {
       setApproving(null);
     }
   };
 
-  const handleSendBack = async (story) => {
-    await onEdit(story.id, { dashStatus: "uploaded" });
+  const handleReject = async (story) => {
+    // Drop back into storyboard queue for fixes
+    await onEdit(story.id, { dashStatus: "storyboard" });
   };
 
   const handleSaveNotes = async (story) => {
     await onEdit(story.id, { reviewNotes: editNotes });
     setEditingId(null);
-  };
-
-  const togglePreview = (id) => {
-    setPreviewId((prev) => (prev === id ? null : id));
   };
 
   return (
@@ -43,14 +38,14 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
     >
       <h2 className="section-title">✅ Review Queue</h2>
       <p className="section-desc">
-        <strong style={{ color: "var(--accent3)" }}>{reviewable.length}</strong> stories review ke liye tayyar hain.
+        <strong style={{ color: "var(--accent3)" }}>{reviewable.length}</strong> stories are ready for technical review.
       </p>
 
       {reviewable.length === 0 ? (
         <div className="review-empty panel">
           <CheckCircle size={48} style={{ color: "var(--accent4)" }} />
-          <p>Abhi koi story review mein nahi hai.</p>
-          <p className="review-hint">Upload tab se story "Send to Review" karein.</p>
+          <p>No stories in the review queue at this time.</p>
+          <p className="review-hint">Assets saved on the Storyboard will route here.</p>
         </div>
       ) : (
         <div className="review-list">
@@ -68,11 +63,11 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                 </div>
                 <div className="review-card-actions">
                   <button
-                    className="btn btn-sm"
-                    onClick={() => handleSendBack(story)}
-                    title="Wapis Upload mein bhejo"
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => handleReject(story)}
+                    title="Reject and send back to Storyboard"
                   >
-                    <RotateCcw size={13} /> Send Back
+                    <RotateCcw size={13} /> Reject
                   </button>
                   <button
                     className="btn btn-success btn-sm"
@@ -85,11 +80,9 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                 </div>
               </div>
 
-              {/* Title + Meta */}
               <h3 className="review-title">{story.title}</h3>
               <div className="review-meta">
                 <span>📁 {story.category || "N/A"}</span>
-                <span>📊 {story.status || "N/A"}</span>
               </div>
 
               {/* Story + Character */}
@@ -104,7 +97,6 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                 </div>
               </div>
 
-              {/* Hashtags + SEO */}
               <div className="review-tags-row">
                 <div className="review-tags-box">
                   <h4 className="review-detail-title"># Hashtags</h4>
@@ -116,87 +108,75 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                 </div>
               </div>
 
-              {/* ============================================
-                  MINI PREVIEW — Video + Thumbnail
-                  Toggle button se preview open hota hai
-                  ============================================ */}
-              <div className="review-preview-section">
+              {/* ASSETS: Raw Links / Simple Display */}
+              <div className="review-preview-section" style={{ padding: "1rem", backgroundColor: "var(--bg)", borderRadius: "8px", border: "1px solid var(--border)"}}>
+                <h4 className="review-detail-title" style={{marginBottom: "0.5rem"}}>📎 Linked Assets</h4>
                 <div className="review-assets">
-                  {/* Video */}
-                  {story.videoLink ? (
-                    <div className="preview-asset-col">
-                      <span className="preview-asset-label">🎬 Video</span>
-                      <div className="preview-thumb-box">
-                        <iframe
-                          src={getDriveEmbedLink(story.videoLink)}
-                          className="preview-video-frame"
-                          allow="autoplay"
-                          title="Video preview"
+                  
+                  {/* Video Box */}
+                  <div className="preview-asset-col">
+                    <span className="preview-asset-label">🎬 Video</span>
+                    {story.videoLink ? (
+                      <div className="preview-thumb-box" style={{ textAlign: "center", backgroundColor: "var(--panel)" }}>
+                        <iframe 
+                          src={getDriveEmbedLink(story.videoLink)} 
+                          width="100%" 
+                          height="200" 
+                          allow="autoplay" 
+                          style={{border: "none", borderRadius: "8px"}} 
+                          title="Video Preview"
                         />
+                        <div style={{ padding: "0.5rem" }}>
+                          <a
+                            href={story.videoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-sm btn-secondary"
+                          >
+                            <ExternalLink size={13} style={{ marginRight: "0.5rem" }}/> View Direct
+                          </a>
+                        </div>
                       </div>
-                      <a
-                        href={story.videoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-sm"
-                        style={{ marginTop: "0.4rem" }}
-                      >
-                        <ExternalLink size={12} /> Full Screen
-                      </a>
-                    </div>
-                  ) : (
-                    <span className="review-asset missing">🎬 Video Missing</span>
-                  )}
+                    ) : (
+                      <span className="review-asset missing">🎬 Video Missing</span>
+                    )}
+                  </div>
 
-                  {/* Thumbnail */}
-                  {story.thumbLink ? (
-                    <div className="preview-asset-col">
-                      <span className="preview-asset-label">🖼️ Thumbnail</span>
-                      <div className="preview-thumb-box">
-                        <img
-                          src={getDriveDirectLink(story.thumbLink)}
-                          alt="Thumbnail"
-                          className="preview-thumb-img"
-                          onError={(e) => {
-                            // Drive image load nahi hui to fallback
-                            e.target.style.display = "none";
-                            e.target.nextSibling.style.display = "flex";
-                          }}
+                  {/* Thumb Box */}
+                  <div className="preview-asset-col">
+                    <span className="preview-asset-label">🖼️ Thumbnail</span>
+                    {story.thumbLink ? (
+                      <div className="preview-thumb-box" style={{ textAlign: "center", backgroundColor: "var(--panel)" }}>
+                        <iframe 
+                          src={getDriveEmbedLink(story.thumbLink)} 
+                          width="100%" 
+                          height="200" 
+                          style={{border: "none", borderRadius: "8px"}} 
+                          title="Thumbnail Preview"
                         />
-                        {/* Fallback agar image load na ho */}
-                        <div className="preview-thumb-fallback" style={{ display: "none" }}>
-                          <Image size={24} />
-                          <span>Preview not available</span>
+                        <div style={{ padding: "0.5rem" }}>
                           <a
                             href={story.thumbLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn btn-sm"
+                            className="btn btn-sm btn-secondary"
                           >
-                            <ExternalLink size={12} /> Drive mein dekhen
+                            <ExternalLink size={13} style={{ marginRight: "0.5rem" }}/> View Direct
                           </a>
                         </div>
                       </div>
-                      <a
-                        href={story.thumbLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-sm"
-                        style={{ marginTop: "0.4rem" }}
-                      >
-                        <ExternalLink size={12} /> Full Screen
-                      </a>
-                    </div>
-                  ) : (
-                    <span className="review-asset missing">🖼️ Thumbnail Missing</span>
-                  )}
+                    ) : (
+                      <span className="review-asset missing">🖼️ Thumb Missing</span>
+                    )}
+                  </div>
+
                 </div>
               </div>
 
               {/* Notes */}
-              <div className="review-notes-section">
+              <div className="review-notes-section" style={{marginTop: "1rem"}}>
                 <div className="review-notes-header">
-                  <h4 className="review-detail-title">📝 Notes</h4>
+                  <h4 className="review-detail-title">📝 Editor Notes</h4>
                   {editingId !== story.id ? (
                     <button
                       className="btn btn-sm btn-icon"
@@ -224,12 +204,12 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                     value={editNotes}
                     onChange={(e) => setEditNotes(e.target.value)}
                     rows={3}
-                    placeholder="Notes likhein…"
+                    placeholder="Provide rejection context / notes…"
                     autoFocus
                   />
                 ) : (
                   <p className="review-notes-text">
-                    {story.reviewNotes || <em style={{ color: "var(--dimmer)" }}>Koi notes nahi</em>}
+                    {story.reviewNotes || <em style={{ color: "var(--dimmer)" }}>No notes</em>}
                   </p>
                 )}
               </div>
@@ -246,10 +226,10 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
             <strong style={{ color: "var(--accent4)" }}>
               {stories.filter((s) => s.dashStatus === "approved").length} stories
             </strong>{" "}
-            approve ho gayi hain!
+            are approved!
           </span>
           <button className="btn btn-primary btn-sm" onClick={onGoToPublish}>
-            🚀 Publish Tab
+            🚀 Go to Publish
           </button>
         </div>
       )}

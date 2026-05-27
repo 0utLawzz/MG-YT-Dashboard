@@ -1,62 +1,59 @@
-// ============================================
-// src/components/Publish/PublishForm.jsx
-// Approved stories → Schedule ya Publish
-// YouTube link Sheet mein save hoti hai
-// No OAuth — manual YouTube link paste karo
-// ============================================
-
-import { useState } from "react";
-import { Send, Calendar, Clock, ExternalLink, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, Calendar, Clock, ExternalLink, RefreshCw, AlertCircle, Edit3, Save, X } from "lucide-react";
+import { publishService } from "../../services/publishService";
 import "./PublishForm.css";
 
 export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) {
-  const [selectedId, setSelectedId] = useState("");
-  const [scheduleDate, setScheduleDate] = useState("");
-  const [scheduleTime, setScheduleTime] = useState("");
-  const [ytLink, setYtLink] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
-  const [mode, setMode] = useState("schedule"); // "schedule" ya "publish"
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({});
+  const [retryId, setRetryId] = useState(null);
+  const [ticker, setTicker] = useState(0);
 
-  // Sirf approved stories
-  const approved = stories.filter((s) => s.dashStatus === "approved");
+  // Poll for publishService status updates
+  useEffect(() => {
+    const unsub = publishService.subscribe(() => setTicker(t => t + 1));
+    return unsub;
+  }, []);
+
+  const publishing = stories.filter((s) => s.dashStatus === "publishing" || publishService.getStatus(s.id));
+  const failed = stories.filter((s) => s.dashStatus === "publish_failed" && !publishService.getStatus(s.id));
   const scheduled = stories.filter((s) => s.dashStatus === "scheduled");
   const published = stories.filter((s) => s.dashStatus === "published");
 
-  const selectedStory = stories.find((s) => s.id === selectedId);
-
-  const handleSelectStory = (id) => {
-    setSelectedId(id);
-    const story = stories.find((s) => s.id === id);
-    if (story) {
-      setYtLink(story.ytLink || "");
-      setScheduleDate(story.schedule ? story.schedule.split("T")[0] : "");
-      setScheduleTime(story.schedule ? story.schedule.split("T")[1]?.slice(0, 5) : "");
-      setDone(false);
+  const handleRetry = async (id) => {
+    setRetryId(id);
+    try {
+      await publishService.publishStory(id, onEdit);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRetryId(null);
     }
   };
 
-  const handleSchedule = async () => {
-    if (!selectedId || !scheduleDate || !scheduleTime) return;
-    setSaving(true);
-    try {
-      const dateTime = `${scheduleDate}T${scheduleTime}`;
-      await onSchedule(selectedId, dateTime);
-      setDone(true);
-    } finally {
-      setSaving(false);
-    }
+  const handleEditClick = (story) => {
+    setEditingId(story.id);
+    setEditData({
+      title: story.title || "",
+      hashtags: story.hashtags || "",
+      schedule: story.schedule ? story.schedule.split("T")[0] : "",
+      time: story.schedule ? story.schedule.split("T")[1]?.slice(0, 5) : ""
+    });
   };
 
-  const handlePublish = async () => {
-    if (!selectedId) return;
-    setSaving(true);
-    try {
-      await onPublish(selectedId, ytLink);
-      setDone(true);
-    } finally {
-      setSaving(false);
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    let newSchedule = null;
+    if (editData.schedule && editData.time) {
+      newSchedule = `${editData.schedule}T${editData.time}`;
     }
+    
+    await onEdit(editingId, {
+      title: editData.title,
+      hashtags: editData.hashtags,
+      schedule: newSchedule
+    });
+    setEditingId(null);
   };
 
   return (
@@ -66,16 +63,20 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
       role="tabpanel"
       aria-labelledby="tab-publish"
     >
-      <h2 className="section-title">🚀 Publish</h2>
+      <h2 className="section-title">🚀 Publish Operations</h2>
       <p className="section-desc">
-        Approved stories schedule karein ya published mark karein YouTube link ke saath.
+        Publishing is now automatically handled upon Approval. Monitor statuses below, retry failures, or edit metadata.
       </p>
 
       {/* Stats Row */}
       <div className="publish-stats">
         <div className="pub-stat panel">
-          <span className="pub-stat-num" style={{ color: "var(--accent4)" }}>{approved.length}</span>
-          <span className="pub-stat-label">Approved</span>
+          <span className="pub-stat-num" style={{ color: "var(--accent4)" }}>{publishing.length}</span>
+          <span className="pub-stat-label">Publishing...</span>
+        </div>
+        <div className="pub-stat panel">
+          <span className="pub-stat-num" style={{ color: "var(--error)" }}>{failed.length}</span>
+          <span className="pub-stat-label">Failed</span>
         </div>
         <div className="pub-stat panel">
           <span className="pub-stat-num" style={{ color: "var(--accent3)" }}>{scheduled.length}</span>
@@ -87,169 +88,107 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
         </div>
       </div>
 
-      {approved.length === 0 && (
-        <div className="publish-empty panel">
-          <p>⚠️ Koi approved story nahi hai. Pehle Review tab se approve karein.</p>
+      {/* 2. Publishing Currently */}
+      {publishing.length > 0 && (
+        <div className="pub-list-section">
+          <h3 className="section-title" style={{ fontSize: "0.95rem" }}>
+            ⏳ Currently Publishing
+          </h3>
+          {publishing.map((s) => (
+            <div key={s.id} className="pub-list-item panel" style={{ borderLeft: "4px solid var(--accent4)" }}>
+              <span className="badge badge-review">PUBLISHING</span>
+              <span className="pub-item-title">{s.title}</span>
+              <span className="monospaced loading-text">Uploading to YouTube...</span>
+            </div>
+          ))}
         </div>
       )}
 
-      {approved.length > 0 && (
-        <div className="publish-form panel">
-          {/* Story Select */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="pub-story-select">
-              Approved Story Select Karein
-            </label>
-            <select
-              className="input"
-              id="pub-story-select"
-              value={selectedId}
-              onChange={(e) => handleSelectStory(e.target.value)}
-            >
-              <option value="">-- Story chunein --</option>
-              {approved.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.id} — {s.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {selectedStory && (
-            <>
-              {/* Story Info */}
-              <div className="pub-story-info">
-                <h3 className="pub-story-title">{selectedStory.title}</h3>
-                <p className="pub-story-meta">
-                  📁 {selectedStory.category} | 🏷️ {selectedStory.hashtags}
-                </p>
-                {selectedStory.videoLink && (
-                  <a href={selectedStory.videoLink} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
-                    <ExternalLink size={13} /> Video Dekhen
-                  </a>
-                )}
-              </div>
-
-              {/* Mode Toggle */}
-              <div className="pub-mode-toggle">
-                <button
-                  className={`btn btn-sm ${mode === "schedule" ? "btn-warning" : ""}`}
-                  onClick={() => setMode("schedule")}
+      {/* 3. Failed */}
+      {failed.length > 0 && (
+        <div className="pub-list-section">
+          <h3 className="section-title" style={{ fontSize: "0.95rem" }}>
+            ❌ Failed Uploads
+          </h3>
+          {failed.map((s) => (
+            <div key={s.id} className="pub-list-item panel" style={{ borderLeft: "4px solid var(--error)", flexDirection: "column", alignItems: "flex-start", gap: "0.5rem" }}>
+              <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <span className="badge" style={{ backgroundColor: "var(--error)", color: "#fff" }}>FAILED</span>
+                  <span className="pub-item-title" style={{ marginLeft: "1rem" }}>{s.title}</span>
+                </div>
+                <button 
+                  className="btn btn-sm btn-primary" 
+                  onClick={() => handleRetry(s.id)}
+                  disabled={retryId === s.id}
                 >
-                  <Calendar size={13} /> Schedule
-                </button>
-                <button
-                  className={`btn btn-sm ${mode === "publish" ? "btn-primary" : ""}`}
-                  onClick={() => setMode("publish")}
-                >
-                  <Send size={13} /> Mark Published
+                  <RefreshCw size={12} style={{marginRight: "0.5rem"}}/> 
+                  {retryId === s.id ? "Retrying..." : "Retry Publish"}
                 </button>
               </div>
-
-              {/* Schedule Mode */}
-              {mode === "schedule" && (
-                <div className="pub-schedule-box">
-                  <h4 className="pub-box-title">
-                    <Calendar size={14} /> Schedule Date & Time
-                  </h4>
-                  <p className="form-hint" style={{ marginBottom: "0.75rem" }}>
-                    YouTube pe manually schedule karein, phir woh time yahan save karein record ke liye.
-                  </p>
-                  <div className="schedule-fields">
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="pub-date">Date</label>
-                      <input
-                        className="input"
-                        type="date"
-                        id="pub-date"
-                        value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="pub-time">Time</label>
-                      <input
-                        className="input"
-                        type="time"
-                        id="pub-time"
-                        value={scheduleTime}
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <button
-                    className="btn btn-warning"
-                    onClick={handleSchedule}
-                    disabled={saving || !scheduleDate || !scheduleTime}
-                  >
-                    <Clock size={14} />
-                    {saving ? "Saving…" : done ? "✅ Scheduled!" : "📅 Schedule Save Karein"}
-                  </button>
-                </div>
-              )}
-
-              {/* Publish Mode */}
-              {mode === "publish" && (
-                <div className="pub-publish-box">
-                  <h4 className="pub-box-title">
-                    <Send size={14} /> YouTube Link + Mark Published
-                  </h4>
-                  <p className="form-hint" style={{ marginBottom: "0.75rem" }}>
-                    YouTube pe manually upload karein, phir link yahan paste karein.
-                  </p>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="yt-link">YouTube Video Link</label>
-                    <input
-                      className="input"
-                      id="yt-link"
-                      value={ytLink}
-                      onChange={(e) => setYtLink(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=xxxxxxx"
-                    />
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={handlePublish}
-                    disabled={saving}
-                  >
-                    <Send size={14} />
-                    {saving ? "Saving…" : done ? "✅ Published!" : "🚀 Mark as Published"}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+              <div className="error-text" style={{ fontSize: "0.8REM", color: "var(--dimmer)" }}>
+                <AlertCircle size={12} /> {s.uploadError || "Unknown error during upload."}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Scheduled List */}
+      {/* 4. Scheduled List */}
       {scheduled.length > 0 && (
         <div className="pub-list-section">
           <h3 className="section-title" style={{ fontSize: "0.95rem" }}>
             📅 Scheduled Stories
           </h3>
           {scheduled.map((s) => (
-            <div key={s.id} className="pub-list-item panel">
-              <span className="badge badge-scheduled">SCHEDULED</span>
-              <span className="pub-item-title">{s.title}</span>
-              <span className="pub-item-date mono">
-                <Clock size={12} /> {s.schedule || "Time set nahi"}
-              </span>
+            <div key={s.id} className="pub-list-item panel" style={{ flexDirection: "column", alignItems: "flex-start", gap: "0.5rem" }}>
+              <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <span className="badge badge-scheduled">SCHEDULED</span>
+                  <span className="pub-item-title" style={{ marginLeft: "1rem" }}>{s.title}</span>
+                </div>
+                {editingId !== s.id ? (
+                  <button className="btn btn-sm btn-icon" onClick={() => handleEditClick(s)}>
+                    <Edit3 size={14} />
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button className="btn btn-sm btn-icon btn-success" onClick={handleSaveEdit}>
+                      <Save size={14} />
+                    </button>
+                    <button className="btn btn-sm btn-icon" onClick={() => setEditingId(null)}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {editingId === s.id ? (
+                <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.5rem", width: "100%" }}>
+                  <input type="text" className="input" style={{flex: 1, minWidth: "150px"}} placeholder="Title" value={editData.title} onChange={e => setEditData({...editData, title: e.target.value})} />
+                  <input type="date" className="input" value={editData.schedule} onChange={e => setEditData({...editData, schedule: e.target.value})} />
+                  <input type="time" className="input" value={editData.time} onChange={e => setEditData({...editData, time: e.target.value})} />
+                </div>
+              ) : (
+                <span className="pub-item-date mono" style={{ fontSize: "0.85rem", color: "var(--dimmer)" }}>
+                  <Clock size={12} /> {s.schedule ? new Date(s.schedule).toLocaleString() : "Time set nahi"}
+                </span>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Published List */}
+      {/* 5. Published List */}
       {published.length > 0 && (
         <div className="pub-list-section">
           <h3 className="section-title" style={{ fontSize: "0.95rem" }}>
             ✅ Published Stories
           </h3>
           {published.map((s) => (
-            <div key={s.id} className="pub-list-item panel">
+            <div key={s.id} className="pub-list-item panel" style={{ display: "flex", alignItems: "center" }}>
               <span className="badge badge-published">PUBLISHED</span>
-              <span className="pub-item-title">{s.title}</span>
+              <span className="pub-item-title" style={{ marginLeft: "1rem", flex: 1 }}>{s.title}</span>
               {s.ytLink && (
                 <a
                   href={s.ytLink}

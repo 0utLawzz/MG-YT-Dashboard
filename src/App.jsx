@@ -1,27 +1,31 @@
 // ============================================
 // src/App.jsx
 // Main app — Supabase removed, Sheet connected
-// New tabs: Storyboard added
+// UploadZone eliminated, absorbed into Storyboard
+// Runtime-hardened with defensive rendering
 // ============================================
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from 'react';
+import { Settings } from 'lucide-react';
 import Header from "./components/Header";
 import Tabs from "./components/Tabs";
-import Dashboard from "./components/Dashboard/Dashboard";
-import StoryTable from "./components/Stories/StoryTable";
-import Storyboard from "./components/Storyboard/Storyboard";
-import UploadZone from "./components/Upload/UploadZone";
-import ReviewPanel from "./components/Review/ReviewCard";
-import PublishForm from "./components/Publish/PublishForm";
-import Analytics from "./components/Analytics/Analytics";
+const Dashboard = lazy(() => import("./components/Dashboard/Dashboard"));
+const StoryTable = lazy(() => import("./components/Stories/StoryTable"));
+const Storyboard = lazy(() => import("./components/Storyboard/Storyboard"));
+const ReviewPanel = lazy(() => import("./components/Review/ReviewCard"));
+const PublishForm = lazy(() => import("./components/Publish/PublishForm"));
+const Analytics = lazy(() => import("./components/Analytics/Analytics"));
 import SettingsDrawer from "./components/SettingsDrawer";
 import { useStories } from "./hooks/useStories";
+import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [selectedStory, setSelectedStory] = useState(null); // Storyboard ke liye
+  const [selectedStory, setSelectedStory] = useState(null);
+
+  const { isAuthenticated, signIn, isLoading: authLoading, authError } = useAuth();
 
   const {
     stories,
@@ -45,17 +49,36 @@ export default function App() {
     statuses,
   } = useStories();
 
-  // Story click → Storyboard tab kholo
-  const handleOpenStoryboard = (story) => {
-    setSelectedStory(story);
+  // Push to Storyboard action: Update status AND switch tab
+  const handlePushToStoryboard = async (story) => {
+    if (story.dashStatus !== "storyboard") {
+      await moveToStoryboard(story.id);
+    }
+    // Update local reference to avoid stale prop reads in Storyboard before refetch completes
+    setSelectedStory({ ...story, dashStatus: "storyboard" });
     setActiveTab("storyboard");
   };
 
-  // Storyboard se Upload tab pe jao
-  const handleGoToUpload = (story) => {
-    setSelectedStory(story);
-    setActiveTab("upload");
+  const handleAddStory = () => {
+    console.log('[BLS-APP] Add story clicked — feature coming soon');
   };
+
+  const handleImportSheet = () => {
+    console.log('[BLS-APP] Import sheet clicked — feature coming soon');
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="login-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+        <h1 className="logo-text" style={{ fontSize: '2rem' }}>BRIGHT LITTLE STORIES</h1>
+        <p>Production Dashboard Authentication</p>
+        <button className="btn btn-primary" onClick={signIn} disabled={authLoading}>
+          {authLoading ? 'Signing In...' : 'Sign in with Google'}
+        </button>
+        {authError && <p className="text-error">{authError}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -63,43 +86,42 @@ export default function App() {
 
       <Header
         onRefresh={refresh}
+        onAddStory={handleAddStory}
+        onImportSheet={handleImportSheet}
         onToggleSettings={() => setSettingsOpen((prev) => !prev)}
       />
 
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
       <main className="app-main">
-        {/* Loading State */}
         {loading && (
           <div className="loading-state">
             <div className="loader"></div>
-            <p>Sheet se data load ho raha hai…</p>
+            <p>Loading stories from Sheet…</p>
           </div>
         )}
 
-        {/* Error State */}
-        {error && (
+        {error && !loading && (
           <div className="error-state panel">
             <p>⚠️ {error}</p>
-            <button className="btn btn-sm" onClick={refresh}>
-              Retry
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button className="btn btn-sm btn-primary" onClick={refresh}>
+                🔄 Retry
+              </button>
+              <button className="btn btn-sm btn-icon" onClick={() => setSettingsOpen(true)} aria-label="Open settings" id="btn-settings">
+                <Settings size={18} />
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Main Content */}
         {!loading && !error && (
-          <>
-            {/* TAB: Dashboard */}
+          <Suspense fallback={<div className="loading-state"><div className="loader"></div><p>Loading tab...</p></div>}>
+            
             {activeTab === "dashboard" && (
-              <Dashboard
-                stories={stories}
-                kpis={kpis}
-                pipelineCounts={pipelineCounts}
-              />
+              <Dashboard stories={stories} kpis={kpis} pipelineCounts={pipelineCounts} />
             )}
 
-            {/* TAB: Stories Table */}
             {activeTab === "stories" && (
               <StoryTable
                 stories={filteredStories}
@@ -108,35 +130,20 @@ export default function App() {
                 filterStatus={filterStatus}
                 onFilterChange={setFilterStatus}
                 statuses={statuses}
-                onOpenStoryboard={handleOpenStoryboard}
+                onOpenStoryboard={handlePushToStoryboard}
               />
             )}
 
-            {/* TAB: Storyboard — Story detail + status move */}
             {activeTab === "storyboard" && (
               <Storyboard
-                story={selectedStory}
+                story={selectedStory || stories.find(s => s.dashStatus === "storyboard")}
                 stories={stories}
                 onSelectStory={setSelectedStory}
-                onMoveToStoryboard={moveToStoryboard}
-                onGoToUpload={handleGoToUpload}
                 onEdit={editStory}
-              />
-            )}
-
-            {/* TAB: Upload — Drive links */}
-            {activeTab === "upload" && (
-              <UploadZone
-                story={selectedStory}
-                stories={stories}
-                onSelectStory={setSelectedStory}
-                onUpdate={editStory}
-                onMoveToUploaded={moveToUploaded}
                 onMoveToReview={moveToReview}
               />
             )}
 
-            {/* TAB: Review */}
             {activeTab === "review" && (
               <ReviewPanel
                 stories={stories}
@@ -146,7 +153,6 @@ export default function App() {
               />
             )}
 
-            {/* TAB: Publish */}
             {activeTab === "publish" && (
               <PublishForm
                 stories={stories}
@@ -156,11 +162,11 @@ export default function App() {
               />
             )}
 
-            {/* TAB: Analytics */}
             {activeTab === "analytics" && (
               <Analytics stories={stories} pipelineCounts={pipelineCounts} />
             )}
-          </>
+
+          </Suspense>
         )}
       </main>
 

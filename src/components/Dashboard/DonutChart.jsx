@@ -1,22 +1,30 @@
-import { useRef, useEffect } from 'react';
+// Removing unused hooks
+import { useMemo } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { useTheme } from '../../context/ThemeContext';
 import './DonutChart.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function DonutChart({ counts }) {
-  const labels = Object.keys(counts);
-  const values = Object.values(counts);
+  const { theme } = useTheme();
+  const safeCounts = counts || {};
+  const labels = Object.keys(safeCounts);
+  const values = Object.values(safeCounts);
 
-  const colorMap = {
-    draft: 'rgba(255,255,255,0.3)',
-    complete: '#00E5FF',
-    review: '#FF1744',
-    approved: '#76FF03',
-    scheduled: '#FFEA00',
-    published: '#E040FB',
-  };
+  const colorMap = useMemo(() => {
+    const style = getComputedStyle(document.body);
+    return {
+      pending: style.getPropertyValue('--dim').trim() || 'rgba(255,255,255,0.3)',
+      storyboard: style.getPropertyValue('--accent2').trim() || '#00E5FF',
+      uploaded: style.getPropertyValue('--accent3').trim() || '#FFEA00',
+      review: style.getPropertyValue('--accent').trim() || '#FF1744',
+      approved: style.getPropertyValue('--accent4').trim() || '#76FF03',
+      scheduled: style.getPropertyValue('--accent3').trim() || '#FFEA00',
+      published: style.getPropertyValue('--accent5').trim() || '#E040FB',
+    };
+  }, [theme]);
 
   const data = {
     labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),

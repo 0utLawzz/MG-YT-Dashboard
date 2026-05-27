@@ -135,3 +135,23 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* OAuth Auth Section */
+.oauth-auth-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+}
+
+.oauth-authenticated,
+.oauth-not-authenticated {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.auth-status {
+  font-size: 0.9rem;
+  font-weight: 500;
+}

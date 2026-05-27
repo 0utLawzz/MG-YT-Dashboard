@@ -1,0 +1,31 @@
+/* YouTubeUploader component styles */
+.youtube-uploader {
+  padding: 1rem;
+  background: var(--bg-secondary, #f9f9f9);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.upload-progress {
+  margin-top: 0.5rem;
+}
+.progress-bar {
+  height: 8px;
+  background: var(--accent, #4f46e5);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.upload-success, .upload-error, .upload-cancelled {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.upload-success .text-success {
+  color: var(--success, #28a745);
+}
+.upload-error .text-error {
+  color: var(--error, #dc3545);
+}
+.upload-cancelled .text-warning {
+  color: var(--warning, #ffc107);
+}
