@@ -99,10 +99,6 @@ export function useStories() {
   const approveStory = useCallback(
     async (rowId, approvedBy = "Admin") => {
       const res = await editStory(rowId, { dashStatus: "approved", approvedBy });
-      // Automatically trigger the publish pipeline in the background
-      publishService.publishStory(rowId, editStory).catch(err => {
-        storyLog('error', 'Publish pipeline failed', err);
-      });
       return res;
     },
     [editStory]

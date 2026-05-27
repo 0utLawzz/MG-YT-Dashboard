@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckCircle, RotateCcw, Edit3, ExternalLink, Save, X, Image as ImageIcon } from "lucide-react";
-import { getDriveEmbedLink, getDriveDirectLink } from "../../lib/api";
+import { getDriveEmbedLink, getDriveThumbnail } from "../../lib/api";
 import "./ReviewCard.css";
 
 export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish }) {
@@ -117,25 +117,15 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                   <div className="preview-asset-col">
                     <span className="preview-asset-label">🎬 Video</span>
                     {story.videoLink ? (
-                      <div className="preview-thumb-box" style={{ textAlign: "center", backgroundColor: "var(--panel)" }}>
-                        <iframe 
-                          src={getDriveEmbedLink(story.videoLink)} 
-                          width="100%" 
-                          height="200" 
-                          allow="autoplay" 
-                          style={{border: "none", borderRadius: "8px"}} 
-                          title="Video Preview"
-                        />
-                        <div style={{ padding: "0.5rem" }}>
-                          <a
-                            href={story.videoLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-sm btn-secondary"
-                          >
-                            <ExternalLink size={13} style={{ marginRight: "0.5rem" }}/> View Direct
-                          </a>
-                        </div>
+                      <div className="preview-thumb-box" style={{ padding: "1.5rem", textAlign: "center", backgroundColor: "var(--panel)" }}>
+                        <a
+                          href={story.videoLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary"
+                        >
+                          <ExternalLink size={14} style={{ marginRight: "0.5rem" }}/> Open Video in Drive
+                        </a>
                       </div>
                     ) : (
                       <span className="review-asset missing">🎬 Video Missing</span>
@@ -146,22 +136,27 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                   <div className="preview-asset-col">
                     <span className="preview-asset-label">🖼️ Thumbnail</span>
                     {story.thumbLink ? (
-                      <div className="preview-thumb-box" style={{ textAlign: "center", backgroundColor: "var(--panel)" }}>
-                        <iframe 
-                          src={getDriveEmbedLink(story.thumbLink)} 
-                          width="100%" 
-                          height="200" 
-                          style={{border: "none", borderRadius: "8px"}} 
-                          title="Thumbnail Preview"
+                      <div className="preview-thumb-box" style={{ textAlign: "center", backgroundColor: "var(--panel)", padding: "0.5rem" }}>
+                        <img 
+                          src={getDriveThumbnail(story.thumbLink)} 
+                          alt="Thumbnail preview" 
+                          style={{ maxWidth: "100%", maxHeight: "160px", display: "block", margin: "0 auto", borderRadius: "8px", objectFit: "cover" }}
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                            if (e.target.nextSibling) {
+                              e.target.nextSibling.style.display = "block";
+                            }
+                          }}
                         />
-                        <div style={{ padding: "0.5rem" }}>
+                        <div style={{ display: "none", padding: "1rem" }}>
+                          <p style={{marginBottom: "1rem"}}>Image Preview blocked centrally</p>
                           <a
                             href={story.thumbLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn btn-sm btn-secondary"
+                            className="btn btn-secondary btn-sm"
                           >
-                            <ExternalLink size={13} style={{ marginRight: "0.5rem" }}/> View Direct
+                            <ExternalLink size={13} style={{ marginRight: "0.5rem" }}/> Open Thumb in Drive
                           </a>
                         </div>
                       </div>

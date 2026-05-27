@@ -107,6 +107,16 @@ export function getDriveEmbedLink(driveUrl) {
   return driveUrl;
 }
 
+export function getDriveThumbnail(driveUrl) {
+  if (!driveUrl) return "";
+  const match = driveUrl.match(/\/d\/([\w-]+)/);
+  if (match) {
+    // sz=w500 limits the size, which makes it load as a proper thumbnail preview
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w500`;
+  }
+  return driveUrl;
+}
+
 // -------------------------------------------------
 // Post video to YouTube via Apps Script (if available)
 // -------------------------------------------------
