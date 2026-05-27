@@ -11,11 +11,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Send, Calendar, Clock, ExternalLink, LogIn, LogOut,
-  RefreshCw, Youtube, Image, Play, ListVideo
+  RefreshCw, Video, Image, Play, ListVideo
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { publishService } from '../../services/publishService';
-import { getDriveThumbnail, getDriveEmbedLink } from '../../lib/api';
+import { getDriveThumbnail, getDriveDirectDownload } from '../../lib/api';
 import { ENV } from '../../lib/config/env';
 import './PublishForm.css';
 
@@ -207,8 +207,8 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
   // ============================================
   // Drive preview helpers
   // ============================================
-  const thumbSrc     = selectedStory?.thumbLink ? getDriveThumbnail(selectedStory.thumbLink) : null;
-  const videoEmbedSrc = selectedStory?.videoLink ? getDriveEmbedLink(selectedStory.videoLink) : null;
+  const thumbSrc    = selectedStory?.thumbLink ? getDriveThumbnail(selectedStory.thumbLink) : null;
+  const videoSrc    = selectedStory?.videoLink ? getDriveDirectDownload(selectedStory.videoLink) : null;
 
   return (
     <section
@@ -356,23 +356,29 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
                   )}
                 </div>
 
-                {/* Video Preview (iframe embed) */}
+                {/* Video Preview — HTML5 video tag, Drive direct link */}
                 <div className="pub-preview-box panel">
                   <h4 className="pub-box-title"><Play size={14} /> Video Preview</h4>
-                  {videoEmbedSrc ? (
-                    <iframe
-                      src={videoEmbedSrc}
-                      title="Video preview"
+                  {videoSrc ? (
+                    <video
+                      src={videoSrc}
+                      controls
+                      preload="metadata"
                       className="pub-video-iframe"
-                      allow="autoplay"
-                      allowFullScreen
+                      onError={e => {
+                        // Drive may block direct streaming — show fallback button
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <div className="pub-preview-empty">
-                      <Play size={32} style={{ color: 'var(--dimmer)' }} />
-                      <span>Video Drive link nahi</span>
-                    </div>
-                  )}
+                  ) : null}
+                  <div
+                    className="pub-preview-empty"
+                    style={{ display: videoSrc ? 'none' : 'flex' }}
+                  >
+                    <Play size={32} style={{ color: 'var(--dimmer)' }} />
+                    <span>Video Drive link nahi hai</span>
+                  </div>
                   {selectedStory.videoLink && (
                     <a
                       href={selectedStory.videoLink}
@@ -480,7 +486,7 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
                   className={`btn ${mode === 'publish' ? 'btn-primary' : 'btn-sm'}`}
                   onClick={() => setMode('publish')}
                 >
-                  <Youtube size={14} /> Push to YouTube
+                  <Video size={14} /> Push to YouTube
                 </button>
                 <button
                   className={`btn ${mode === 'schedule' ? 'btn-warning' : 'btn-sm'}`}

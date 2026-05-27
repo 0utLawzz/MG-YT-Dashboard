@@ -100,10 +100,12 @@ export function getDriveDirectLink(driveUrl) {
   return driveUrl;
 }
 
-export function getDriveEmbedLink(driveUrl) {
+export function getDriveDirectDownload(driveUrl) {
+  // Returns a direct streamable URL for video preview
+  // Works only if file is "Anyone with link" shared
   if (!driveUrl) return "";
   const match = driveUrl.match(/\/d\/([\w-]+)/);
-  if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
+  if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
   return driveUrl;
 }
 
