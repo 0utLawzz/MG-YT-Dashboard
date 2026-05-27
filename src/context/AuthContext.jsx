@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
     // Initialize token client once
     tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube',
+      scope: 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/drive.readonly',
       callback: (response) => {
         setIsLoading(false);
         if (response && response.access_token) {

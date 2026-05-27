@@ -8,7 +8,8 @@ const DEFAULT_CONFIG = {
   sheetUrl: '',
   googleClientId: '',
   driveFolderId: '',
-  youtubePlaylistId: '',
+  youtubeChannelId: 'UC2FdFOP-XrLFlWN9VJWmYWQ', // Fixed YouTube Channel ID
+  youtubePlaylistId: '',                           // Default playlist/album for new uploads
   driveApiKey: '',
   youtubeApiKey: '',
   analyticApiKey: '',
@@ -116,8 +117,31 @@ export default function SettingsDrawer({ open, onClose }) {
 
           <h4 style={{ margin: "1rem 0 0.5rem 0", color: "var(--accent5)" }}>YouTube & Analytics</h4>
 
+          {/* YouTube Channel ID — videos isi channel pe jayengi */}
           <div className="form-group">
-            <label className="form-label" htmlFor="cfg-yt-playlist">YouTube Playlist ID</label>
+            <label className="form-label" htmlFor="cfg-yt-channel">
+              YouTube Channel ID
+              <span style={{ fontSize: '0.72rem', color: 'var(--dim)', marginLeft: '0.5rem' }}>
+                (UC... format — fixed channel)
+              </span>
+            </label>
+            <input
+              className="input"
+              id="cfg-yt-channel"
+              value={config.youtubeChannelId}
+              onChange={e => handleChange('youtubeChannelId', e.target.value)}
+              placeholder="UC2FdFOP-XrLFlWN9VJWmYWQ"
+            />
+          </div>
+
+          {/* YouTube Playlist ID — video is album mein add hogi */}
+          <div className="form-group">
+            <label className="form-label" htmlFor="cfg-yt-playlist">
+              Default YouTube Playlist ID
+              <span style={{ fontSize: '0.72rem', color: 'var(--dim)', marginLeft: '0.5rem' }}>
+                (optional — video auto-add hogi is playlist mein)
+              </span>
+            </label>
             <input
               className="input"
               id="cfg-yt-playlist"
