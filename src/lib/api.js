@@ -109,6 +109,11 @@ export function getDriveDirectDownload(driveUrl) {
   return driveUrl;
 }
 
+// Kept for backward compatibility — same as getDriveDirectDownload
+export function getDriveEmbedLink(driveUrl) {
+  return getDriveDirectDownload(driveUrl);
+}
+
 export function getDriveThumbnail(driveUrl) {
   if (!driveUrl) return "";
   const match = driveUrl.match(/\/d\/([\w-]+)/);
