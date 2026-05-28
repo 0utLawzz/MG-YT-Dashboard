@@ -1,308 +1,262 @@
-# 🌟 Bright Little Stories Dashboard (Google Sheets Edition)
+# 🎬 Bright Little Stories — Production Dashboard
 
-Welcome to your modernized **Bright Little Stories** dashboard! This app is a professional command center designed to manage story creation from draft to YouTube release.
+> **v1.0.0** · YouTube content pipeline manager for kids' story channels.  
+> Google Sheets backend · OAuth2 auth · Drive-to-YouTube publish engine · NeoBrutalism UI
 
-It uses a **Google Sheets + Google Apps Script** backend, which means it's fast, simple, and requires no database setup.
-
----
-
-## 🚀 Quick Start (Running the App)
-
-If you have the code on your computer, follow these 3 simple steps to start:
-
-1. **Open your Terminal** (like Command Prompt or PowerShell).
-2. **Move to this folder**:
-   ```powershell
-   cd E:\Pythons\MG-YT-Dashboard
-   ```
-3. **Install dependencies** (first time only):
-   ```powershell
-   npm install
-   ```
-4. **Start the app**:
-   ```powershell
-   npm run dev
-   ```
-5. **Open your browser**: Go to `http://localhost:5173`. You should see your dashboard!
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://vercel.com)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)](https://vitejs.dev)
 
 ---
 
-## 🏗️ What's Under the Hood? (The Magic Parts)
+## 📋 What is This?
 
-### Tech Stack
-- **Frontend**: React + Vite
-- **Backend**: Google Sheets + Google Apps Script
-- **Styling**: Custom CSS with CSS Variables
-- **Charts**: Chart.js + React-Chartjs-2
+A full-stack production dashboard for managing a YouTube kids' story channel — from raw story scripts to live YouTube uploads. No traditional backend or database needed; **Google Sheets is the database**, **Google Apps Script is the API**, and **Google Drive is the file store**.
 
-### Architecture
-The app connects to a Google Sheet via a Google Apps Script URL. All data (stories, status, links) is stored in the Sheet. The frontend fetches data using the Apps Script API and updates the Sheet when you make changes.
+The entire pipeline is:
 
-### Key Features
-- **Dashboard**: KPI cards showing story counts by status
-- **Stories Table**: View and filter all stories
-- **Storyboard**: Detailed view of story content, hashtags, SEO tags
-- **Upload**: Paste Google Drive links for video and thumbnail
-- **Review**: Approve or reject stories for publishing
-- **Publish**: Schedule stories or mark as published with YouTube link
-- **Analytics**: Pipeline status charts and category breakdown
-
----
-
-## 📋 Setup Instructions
-
-### 1. Google Sheet Setup
-Create a Google Sheet with the following columns:
-- **Column A**: Row ID (e.g., "Row-001-01")
-- **Column B**: Title
-- **Column C**: Category
-- **Column D**: Age Group
-- **Column E**: Story Text
-- **Column F**: Character Description
-- **Column G**: Hashtags
-- **Column H**: SEO Tags
-- **Column I**: Dashboard Status (pending, storyboard, uploaded, review, approved, scheduled, published)
-- **Column J**: Video Link (Google Drive)
-- **Column K**: Thumbnail Link (Google Drive)
-- **Column L**: YouTube Link
-- **Column M**: Schedule Date/Time
-- **Column N**: Review Notes
-- **Column O**: Updated At
-
-### 2. Google Apps Script Setup
-1. Open your Google Sheet
-2. Go to **Extensions → Apps Script**
-3. Paste the following code:
-
-```javascript
-function doGet(e) {
-  const action = e.parameter.action;
-  
-  if (action === 'getAllStories') {
-    return getAllStories();
-  } else if (action === 'getAnalytics') {
-    return getAnalytics();
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid action' }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const action = data.action;
-  
-  if (action === 'updateStory') {
-    return updateStory(data.rowId, data.updates);
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid action' }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function getAllStories() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const stories = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const story = {};
-    headers.forEach((header, index) => {
-      story[header.toLowerCase().replace(/\s+/g, '')] = row[index];
-    });
-    stories.push(story);
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify(stories))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function updateStory(rowId, updates) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-
-  // Map column names to indices (case-insensitive)
-  const colMap = {};
-  headers.forEach((header, index) => {
-    colMap[header.toLowerCase().replace(/\s+/g, '')] = index;
-  });
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(rowId)) {
-      Object.keys(updates).forEach(key => {
-        const colIndex = colMap[key.toLowerCase().replace(/\s+/g, '')];
-        if (colIndex !== undefined) {
-          sheet.getRange(i + 1, colIndex + 1).setValue(updates[key]);
-        }
-      });
-      break;
-    }
-  }
-
-  return ContentService.createTextOutput(JSON.stringify({ success: true }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function getAnalytics() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = sheet.getDataRange().getValues();
-  const statusCounts = {};
-  
-  for (let i = 1; i < data.length; i++) {
-    const status = data[i][8] || 'pending';
-    statusCounts[status] = (statusCounts[status] || 0) + 1;
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify(statusCounts))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+```
+Story in Sheet → Storyboard (review + attach assets) → Review/Approve → Publish to YouTube
 ```
 
-4. Save the script
-5. Click **Deploy → New Deployment**
-6. Select type: **Web app**
-7. Description: "Dashboard API"
-8. Execute as: **Me**
-9. Who has access: **Anyone**
-10. Click **Deploy**
-11. Copy the **Web App URL**
+---
 
-### 3. Update App Configuration
-1. Open `src/lib/api.js`
-2. Replace the `SCRIPT_URL` with your Google Apps Script URL:
-   ```javascript
-   const SCRIPT_URL = "YOUR_APPS_SCRIPT_URL_HERE";
-   ```
+## ✨ Features
 
-### 4. Google Drive OAuth Setup (Optional)
-For direct file upload to Google Drive (instead of pasting links):
+| Tab | What it does |
+|-----|-------------|
+| **Dashboard** | KPI cards, pipeline status counts, bar charts, donut chart |
+| **Stories** | Full story table with search, filter by status, push to storyboard |
+| **Storyboard** | Review story content, attach video + thumbnail Drive links, upload direct to Drive |
+| **Review** | Approve or edit stories before publish |
+| **Publish** | One-click Drive → YouTube upload with progress bar, playlist select, SEO metadata, schedule |
+| **Analytics** | Story distribution charts, category breakdown |
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable **Google Drive API**
-4. Go to **APIs & Services → Credentials**
-5. Click **Create Credentials → OAuth 2.0 Client ID**
-6. Application type: **Web application**
-7. Authorized JavaScript origins: `http://localhost:5173` (and your production URL)
-8. Authorized redirect URIs: Leave empty
-9. Copy the **Client ID**
-10. Create a `.env` file in the project root:
-   ```env
-   VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
-   ```
+---
 
-### 5. Run the App
-```powershell
+## 🏗️ Architecture
+
+```
+Browser (React SPA)
+    │
+    ├── Google OAuth2 (Identity Services)
+    │       └── Scopes: YouTube upload, Drive, userinfo.email
+    │
+    ├── Google Apps Script (REST-like API)
+    │       └── getAllStories / updateStory / getAnalytics
+    │               └── Google Sheets (Database)
+    │
+    ├── Google Drive API (direct from browser)
+    │       └── File upload (chunked resumable)
+    │       └── File download for YouTube upload
+    │
+    └── YouTube Data API v3
+            └── Resumable video upload
+            └── Thumbnail set
+            └── Playlist add
+```
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/your-username/mg-yt-dashboard.git
+cd mg-yt-dashboard
+npm install
+```
+
+### 2. Configure Environment
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+```
+
+> Get your Client ID from [Google Cloud Console](https://console.cloud.google.com/) →  
+> APIs & Services → Credentials → Create OAuth 2.0 Client ID (Web application)
+
+### 3. Google Cloud Setup (one-time)
+
+Enable these APIs in your GCP project:
+- YouTube Data API v3
+- Google Drive API
+- Google Sheets API
+
+Add your domain to **Authorized JavaScript Origins**:
+- `http://localhost:5173` (dev)
+- `https://your-app.vercel.app` (production)
+
+### 4. Google Apps Script Setup
+
+Open your Google Sheet → Extensions → Apps Script → paste the contents of `Code.gs`.
+
+Deploy as **Web App**:
+- Execute as: **Me**
+- Who has access: **Anyone**
+
+Copy the deployment URL. Either:
+- Set it in `.env.local` as `VITE_SCRIPT_URL=https://script.google.com/...`
+- Or paste it in the app's ⚙️ Settings drawer at runtime
+
+### 5. Run Locally
+
+```bash
 npm run dev
 ```
 
----
-
-## 📊 Workflow
-
-1. **Pending**: New stories appear in the Dashboard
-2. **Storyboard**: Review story details, mark as storyboard
-3. **Upload**: Paste Google Drive links for video and thumbnail
-4. **Review**: Approve or reject stories
-5. **Publish**: Schedule stories or mark as published with YouTube link
-6. **Analytics**: View pipeline status and category breakdown
+Open `http://localhost:5173`
 
 ---
 
-## 🎨 Customization
+## 🔧 Settings Drawer
 
-### Colors
-Edit `src/styles/globals.css` to change the color scheme:
-- `--accent`: Primary accent color
-- `--accent2`: Secondary accent color
-- `--accent3`: Tertiary accent color
-- etc.
+All config can be changed at runtime via the ⚙️ button in the header — no redeploy needed:
 
-### Fonts
-The app uses Google Fonts (Inter, Poppins, Share Tech Mono). You can change these in `index.html`.
+| Setting | Description |
+|---------|-------------|
+| **Google Sheet Script URL** | Apps Script web app URL (your backend) |
+| **Google Client ID** | OAuth client for YouTube + Drive login |
+| **Drive Folder ID** | Default folder for video/thumbnail uploads |
+| **YouTube Channel ID** | Your channel's UC... ID |
+| **YouTube Playlist ID** | Optional — auto-adds uploaded videos to this playlist |
+
+Settings are saved to `localStorage` under the key `bls_config`.
 
 ---
 
-## 🐛 Troubleshooting
+## 📂 Project Structure
 
-### Blank Page
-- Check browser console for errors (F12)
-- Ensure Google Apps Script URL is correct
-- Make sure the Sheet has the correct column structure
-- Check that the Apps Script is deployed as a Web App with "Anyone" access
+```
+src/
+├── components/
+│   ├── Analytics/          # Analytics tab charts
+│   ├── common/             # ErrorBoundary
+│   ├── Dashboard/          # KPI cards, pipeline bar, donut chart
+│   ├── Publish/            # PublishForm — Drive → YouTube engine
+│   ├── Review/             # ReviewCard — approve/reject panel
+│   ├── SheetImport/        # (placeholder for future import UI)
+│   ├── Stories/            # StoryTable with search + filter
+│   ├── Storyboard/         # Asset attachment + Drive upload
+│   ├── Header.jsx          # Top nav — refresh, settings, signout
+│   ├── SettingsDrawer.jsx  # Slide-in config panel
+│   └── Tabs.jsx            # Tab navigation
+│
+├── context/
+│   ├── AuthContext.jsx     # Google OAuth2 token lifecycle
+│   └── ThemeContext.jsx    # Dark/light/glass/neon themes
+│
+├── hooks/
+│   ├── useAuth.js          # Auth context consumer hook
+│   └── useStories.js       # Stories state, KPIs, pipeline counts
+│
+├── lib/
+│   ├── api.js              # fetchStories, updateStory, Drive link helpers
+│   ├── api/client.js       # fetchWithRetry — retry + GAS redirect handling
+│   └── config/env.js       # Central config (localStorage → .env fallback)
+│
+├── services/
+│   ├── publishService.js   # 7-stage Drive → YouTube publish pipeline
+│   └── upload/
+│       └── driveUpload.js  # Chunked resumable Drive upload
+│
+└── styles/
+    ├── globals.css
+    └── themes/             # dark, light, glass, midnight, neon
+```
 
-### Data Not Loading
-- Verify the Apps Script URL is accessible
-- Check that the Sheet has data
-- Ensure CORS is enabled in Apps Script
+---
 
-### Updates Not Saving
-- Check that the Apps Script has edit permissions
-- Verify the row ID matches exactly
-- Check browser console for error messages
+## 🔑 Google Sheets Schema
+
+The Apps Script expects columns **A through Q** in `Sheet1`:
+
+| Col | Field | Description |
+|-----|-------|-------------|
+| A | `Row_ID` | Unique story identifier |
+| B | `Status` | Original pipeline status |
+| C | `Category` | Story category/genre |
+| D | `Title` | Story title |
+| E | `Story` | Full story text |
+| F | `Character` | Character description |
+| G | `Hashtags` | Space-separated hashtags |
+| H | `SEO_Tags` | Comma-separated SEO tags |
+| I | `Dashboard_Status` | Dashboard workflow status (see below) |
+| J | `Video_Drive_Link` | Google Drive video file link |
+| K | `Thumbnail_Drive_Link` | Google Drive thumbnail link |
+| L | `Review_Notes` | Editor/director notes |
+| M | `Schedule_DateTime` | ISO datetime for scheduled publish |
+| N | `YouTube_Link` | YouTube video URL after publish |
+| O | `Approved_By` | Approver name |
+| P | `Last_Updated` | ISO timestamp of last change |
+| Q | `Upload_Error` | Error message if upload failed |
+
+### Dashboard Status Flow
+
+```
+pending → storyboard → review → approved → publishing → published
+                                                       ↘ scheduled
+                                              publish_failed (retryable)
+```
+
+Run `addNewColumns()` from Apps Script editor once to set up columns I–Q on an existing sheet.
+
+---
+
+## 📦 Tech Stack
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| React | 19 | UI framework |
+| Vite | 8 | Build tool + dev server |
+| Chart.js + react-chartjs-2 | 4.x / 5.x | Dashboard charts |
+| lucide-react | 1.x | Icons |
+| sonner | 2.x | Toast notifications |
+| vite-plugin-compression | — | Gzip build output |
+
+No backend server. No database. No API keys in production beyond the Google OAuth Client ID.
+
+---
+
+## 🚢 Deployment (Vercel)
+
+```bash
+# One-time setup
+npm i -g vercel
+vercel
+
+# Production deploy
+vercel --prod
+```
+
+Set `VITE_GOOGLE_CLIENT_ID` in Vercel's Environment Variables dashboard.
+
+The included `vercel.json` handles SPA routing (all paths → `index.html`) and sets asset cache headers.
+
+> **Why Vercel over GitHub Pages?**  
+> GitHub Pages doesn't support SPA routing rewrites natively, and environment variables require build-time workarounds. Vercel handles both out of the box.
+
+---
+
+## 🛠️ Available Scripts
+
+```bash
+npm run dev       # Start dev server (localhost:5173)
+npm run build     # Production build → dist/
+npm run preview   # Preview production build locally
+npm run lint      # ESLint check
+npm run test      # Run Vitest unit tests
+```
 
 ---
 
 ## 📝 License
 
-This project is open source and available for personal and commercial use.
-
-For a non-coder, here is how the different parts work together:
-
-### 1. The "Brain" (Supabase)
-*   **Database**: All your stories, views, likes, and statuses are saved here safely.
-*   **Storage**: When you upload a video or a picture in the "Upload" tab, it goes here.
-*   **Safety**: It has a "Service Role" which is like a master key that keeps everything private.
-
-### 2. The "Publishing Office" (Google & YouTube)
-*   **YouTube Data API**: This allows the app to talk to YouTube to upload videos.
-*   **Google Sheets**: You can still use your sheets to view data, and the app can read from them.
-
-### 3. The "Look & Feel" (React + Vite)
-*   **Brutalist Design**: The bold borders and colors make it look like a high-end production tool.
-*   **Real-time Charts**: These update instantly to show you how stories are performing.
-
----
-
-## 🛠️ How to Manage the App
-
-### Adding New Stories
-Click the **"NEW STORY"** button in the top right. Enter a title and category, and it will appear in your database instantly.
-
-### Uploading Files
-In the **"Upload"** tab, you can drag and drop your `.mp4` video and thumbnail picture. The progress bar will show you the real upload status to your storage vault.
-
-### Changing Settings
-Click the **Gear Icon (⚙️)** in the top right to open the Settings drawer. This is where you put your "keys" (API links and Folder IDs) if they ever change.
-
----
-
-## 🌐 Taking it Live (Production)
-
-When you are ready to put this on the web (like on Vercel or Netlify):
-
-1.  **Build the final version**:
-    ```powershell
-    npm run build
-    ```
-2.  **Upload the `dist` folder**: This is the "packaged" app that works on any web server.
-
----
-
-## ❓ FAQ for No-Coders
-
-**Q: Where is my data actually kept?**
-A: It's in the cloud, hosted by **Supabase**. You can log in to your Supabase dashboard at any time to see the "raw" data.
-
-**Q: Do I need to be a coder to update the styles?**
-A: Most styles are in `src/styles/globals.css`. You can change "Colors" (like `--accent`) by just typing new color codes there.
-
-**Q: I see a blank screen?**
-A: Make sure you ran `npm install` first to get all the "tools" the app needs to run.
-
----
-
-**Developed with ❤️ by Antigravity AI + Outlawz**
+Private project — Bright Little Stories channel.

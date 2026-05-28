@@ -8,10 +8,8 @@ const DEFAULT_CONFIG = {
   sheetUrl: '',
   googleClientId: '',
   driveFolderId: '',
-  youtubeChannelId: 'UC2FdFOP-XrLFlWN9VJWmYWQ', // Fixed YouTube Channel ID
-  youtubePlaylistId: '',                           // Default playlist/album for new uploads
-  youtubeApiKey: '',
-  autoSave: true,
+  youtubeChannelId: 'UC2FdFOP-XrLFlWN9VJWmYWQ',
+  youtubePlaylistId: '',
 };
 
 export default function SettingsDrawer({ open, onClose }) {
@@ -136,30 +134,6 @@ export default function SettingsDrawer({ open, onClose }) {
               onChange={e => handleChange('youtubePlaylistId', e.target.value)}
               placeholder="PLxxxx..."
             />
-          </div>
-          
-          <div className="form-group">
-            <label className="form-label" htmlFor="cfg-yt-key">YouTube API Key (Manual)</label>
-            <input
-              className="input"
-              id="cfg-yt-key"
-              value={config.youtubeApiKey}
-              onChange={e => handleChange('youtubeApiKey', e.target.value)}
-              placeholder="AIzaSy..."
-            />
-          </div>
-          
-          <div className="form-group form-row" style={{ marginTop: "1rem" }}>
-            <label className="form-label" htmlFor="cfg-autosave">Auto-save changes</label>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                id="cfg-autosave"
-                checked={config.autoSave}
-                onChange={e => handleChange('autoSave', e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-            </label>
           </div>
         </div>
 

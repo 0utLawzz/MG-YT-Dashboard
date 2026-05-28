@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Plus, Settings, Sparkles, Clock, FileSpreadsheet, LogOut } from 'lucide-react';
+import { RefreshCw, Settings, Sparkles, Clock, LogOut } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import './Header.css';
 
-export default function Header({ onRefresh, onAddStory, onImportSheet, onToggleSettings }) {
+export default function Header({ onRefresh, onToggleSettings }) {
   const [time, setTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
   const { signOut } = useAuth();
@@ -52,30 +52,6 @@ export default function Header({ onRefresh, onAddStory, onImportSheet, onToggleS
         >
           <RefreshCw size={14} className={refreshing ? 'spin' : ''} />
           REFRESH
-        </button>
-
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={onImportSheet}
-          aria-label="Import from Google Sheet"
-          id="btn-import-sheet"
-          disabled
-          title="Not implemented yet"
-        >
-          <FileSpreadsheet size={14} />
-          IMPORT
-        </button>
-
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={onAddStory}
-          aria-label="Add new story"
-          id="btn-add-story"
-          disabled
-          title="Not implemented yet"
-        >
-          <Plus size={14} />
-          NEW STORY
         </button>
 
         <button

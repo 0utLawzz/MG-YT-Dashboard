@@ -17,9 +17,6 @@ export const ENV = {
   // --- Google OAuth Client ID (for YouTube + Drive login popup) ---
   GOOGLE_CLIENT_ID: savedConfig.googleClientId || import.meta.env.VITE_GOOGLE_CLIENT_ID,
 
-  // --- Google API Key (for read-only Sheets access) ---
-  GOOGLE_API_KEY: import.meta.env.VITE_GOOGLE_API_KEY,
-
   // --- Apps Script URL (Google Sheet backend) ---
   // This is the deployed Google Apps Script Web App URL
   SCRIPT_URL:

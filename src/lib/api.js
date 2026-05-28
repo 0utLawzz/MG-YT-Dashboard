@@ -125,11 +125,11 @@ export function getDriveThumbnail(driveUrl) {
 }
 
 // -------------------------------------------------
-// Post video to YouTube via Apps Script (if available)
+// postToYouTube — NOT IMPLEMENTED in Code.gs yet
+// Code.gs doGet() has no 'publishVideo' action handler.
+// Keeping for future GAS-side YouTube integration.
 // -------------------------------------------------
-export async function postToYouTube(videoId, metadata = {}) {
-  const url = `${ENV.SCRIPT_URL}?action=publishVideo&videoId=${encodeURIComponent(videoId)}&metadata=${encodeURIComponent(JSON.stringify(metadata))}`;
-  const data = await apiClient.get(url);
-  if (data?.error) throw new Error(data.error);
-  return data;
-}
+// export async function postToYouTube(videoId, metadata = {}) {
+//   const url = `${ENV.SCRIPT_URL}?action=publishVideo&videoId=...`;
+//   ...
+// }

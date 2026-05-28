@@ -1,8 +1,6 @@
 // ============================================
-// src/App.jsx
-// Main app — Supabase removed, Sheet connected
-// UploadZone eliminated, absorbed into Storyboard
-// Runtime-hardened with defensive rendering
+// src/App.jsx — v1.0.0
+// Main app shell — Google Sheets backend, OAuth auth
 // ============================================
 
 import { useState, lazy, Suspense } from 'react';
@@ -40,7 +38,6 @@ export default function App() {
     kpis,
     editStory,
     moveToStoryboard,
-    moveToUploaded,
     moveToReview,
     approveStory,
     scheduleStory,
@@ -49,7 +46,6 @@ export default function App() {
     statuses,
   } = useStories();
 
-  // Push to Storyboard action: Update status AND switch tab
   const handlePushToStoryboard = async (story) => {
     if (story.dashStatus !== "storyboard") {
       await moveToStoryboard(story.id);
@@ -57,14 +53,6 @@ export default function App() {
     // Update local reference to avoid stale prop reads in Storyboard before refetch completes
     setSelectedStory({ ...story, dashStatus: "storyboard" });
     setActiveTab("storyboard");
-  };
-
-  const handleAddStory = () => {
-    console.log('[BLS-APP] Add story clicked — feature coming soon');
-  };
-
-  const handleImportSheet = () => {
-    console.log('[BLS-APP] Import sheet clicked — feature coming soon');
   };
 
   if (!isAuthenticated) {
@@ -86,8 +74,6 @@ export default function App() {
 
       <Header
         onRefresh={refresh}
-        onAddStory={handleAddStory}
-        onImportSheet={handleImportSheet}
         onToggleSettings={() => setSettingsOpen((prev) => !prev)}
       />
 
