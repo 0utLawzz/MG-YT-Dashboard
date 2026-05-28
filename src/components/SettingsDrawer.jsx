@@ -10,9 +10,7 @@ const DEFAULT_CONFIG = {
   driveFolderId: '',
   youtubeChannelId: 'UC2FdFOP-XrLFlWN9VJWmYWQ', // Fixed YouTube Channel ID
   youtubePlaylistId: '',                           // Default playlist/album for new uploads
-  driveApiKey: '',
   youtubeApiKey: '',
-  analyticApiKey: '',
   autoSave: true,
 };
 
@@ -104,17 +102,6 @@ export default function SettingsDrawer({ open, onClose }) {
             />
           </div>
           
-          <div className="form-group">
-            <label className="form-label" htmlFor="cfg-drive-key">Drive API Key (Manual)</label>
-            <input
-              className="input"
-              id="cfg-drive-key"
-              value={config.driveApiKey}
-              onChange={e => handleChange('driveApiKey', e.target.value)}
-              placeholder="AIzaSy..."
-            />
-          </div>
-
           <h4 style={{ margin: "1rem 0 0.5rem 0", color: "var(--accent5)" }}>YouTube & Analytics</h4>
 
           {/* YouTube Channel ID — videos isi channel pe jayengi */}
@@ -162,17 +149,6 @@ export default function SettingsDrawer({ open, onClose }) {
             />
           </div>
           
-          <div className="form-group">
-            <label className="form-label" htmlFor="cfg-analytics-key">Analytics Dashboard Key</label>
-            <input
-              className="input"
-              id="cfg-analytics-key"
-              value={config.analyticApiKey}
-              onChange={e => handleChange('analyticApiKey', e.target.value)}
-              placeholder="Custom key to unlock raw analytics..."
-            />
-          </div>
-
           <div className="form-group form-row" style={{ marginTop: "1rem" }}>
             <label className="form-label" htmlFor="cfg-autosave">Auto-save changes</label>
             <label className="toggle-switch">

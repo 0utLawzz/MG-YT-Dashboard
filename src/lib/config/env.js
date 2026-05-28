@@ -47,8 +47,4 @@ export const ENV = {
     savedConfig.driveFolderId ||
     import.meta.env.VITE_DRIVE_FOLDER_ID ||
     '',
-
-  // --- Legacy fields (kept for compatibility) ---
-  SUPABASE_URL: savedConfig.apiUrl || import.meta.env.VITE_SUPABASE_URL,
-  SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
 };

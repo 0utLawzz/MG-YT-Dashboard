@@ -10,7 +10,7 @@ export default defineConfig({
   // Ye sirf localhost development mein kaam karta hai
   // Browser ko lagta hai ke request same origin pe ja rahi hai
   // CORS errors bilkul khatam ho jati hain
-  // Production (GitHub Pages) mein ye nahi hoga —
+  // Production (Vercel) mein ye nahi hoga —
   // wahan deployed URL pe CORS already allow hoti hai
   // ============================================
   server: {

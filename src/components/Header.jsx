@@ -59,6 +59,8 @@ export default function Header({ onRefresh, onAddStory, onImportSheet, onToggleS
           onClick={onImportSheet}
           aria-label="Import from Google Sheet"
           id="btn-import-sheet"
+          disabled
+          title="Not implemented yet"
         >
           <FileSpreadsheet size={14} />
           IMPORT
@@ -69,6 +71,8 @@ export default function Header({ onRefresh, onAddStory, onImportSheet, onToggleS
           onClick={onAddStory}
           aria-label="Add new story"
           id="btn-add-story"
+          disabled
+          title="Not implemented yet"
         >
           <Plus size={14} />
           NEW STORY
