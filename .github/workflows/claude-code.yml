@@ -1,14 +1,17 @@
-name: Claude Code Action
+name: Claude Review
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+    types: [opened]
 
 jobs:
-  claude-code:
+  claude:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Claude Code Action Official
-        uses: anthropics/claude-code-action@v1
+      - uses: actions/checkout@v4
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "Review this PR and suggest fixes"
