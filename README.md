@@ -305,4 +305,4 @@ A: Make sure you ran `npm install` first to get all the "tools" the app needs to
 
 ---
 
-**Developed with ❤️ by Antigravity AI**
+**Developed with ❤️ by Antigravity AI + Outlawz**
