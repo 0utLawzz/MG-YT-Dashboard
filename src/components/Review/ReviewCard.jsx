@@ -117,15 +117,29 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                   <div className="preview-asset-col">
                     <span className="preview-asset-label">🎬 Video</span>
                     {story.videoLink ? (
-                      <div className="preview-thumb-box" style={{ padding: "1.5rem", textAlign: "center", backgroundColor: "var(--panel)" }}>
-                        <a
-                          href={story.videoLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary"
-                        >
-                          <ExternalLink size={14} style={{ marginRight: "0.5rem" }}/> Open Video in Drive
-                        </a>
+                      <div className="preview-thumb-box" style={{ padding: "0.5rem", textAlign: "center", backgroundColor: "var(--panel)" }}>
+                        <video
+                          src={getDriveDirectDownload(story.videoLink)}
+                          controls
+                          style={{ maxWidth: "100%", maxHeight: "200px", display: "block", margin: "0 auto", borderRadius: "8px" }}
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                            if (e.target.nextSibling) {
+                              e.target.nextSibling.style.display = "block";
+                            }
+                          }}
+                        />
+                        <div style={{ display: "none", padding: "1rem" }}>
+                          <p style={{marginBottom: "1rem"}}>Video preview blocked - file may not be shared publicly</p>
+                          <a
+                            href={story.videoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary"
+                          >
+                            <ExternalLink size={14} style={{ marginRight: "0.5rem" }}/> Open Video in Drive
+                          </a>
+                        </div>
                       </div>
                     ) : (
                       <span className="review-asset missing">🎬 Video Missing</span>

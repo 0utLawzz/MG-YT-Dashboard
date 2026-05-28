@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
-import { BookOpen, User, Hash, Tag, ArrowRight, CheckCircle, ChevronDown, ExternalLink } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { BookOpen, User, Hash, Tag, ArrowRight, CheckCircle, ChevronDown, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { uploadToDrive, setDriveFilePermissions } from "../../services/upload/driveUpload";
+import { useAuth } from "../../context/AuthContext";
 import "./Storyboard.css";
 
 const STATUS_COLORS = {
@@ -19,12 +21,18 @@ export default function Storyboard({
   onEdit,
   onMoveToReview,
 }) {
+  const { accessToken } = useAuth();
   const [notes, setNotes] = useState(story?.reviewNotes || "");
   const [videoLink, setVideoLink] = useState(story?.videoLink || "");
   const [thumbLink, setThumbLink] = useState(story?.thumbLink || "");
   
   const [saving, setSaving] = useState(false);
   const [savedAssets, setSavedAssets] = useState(false);
+  const [uploading, setUploading] = useState({ video: false, thumb: false });
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  const videoInputRef = useRef(null);
+  const thumbInputRef = useRef(null);
 
   // Sync state when story changes
   useEffect(() => {
@@ -56,6 +64,41 @@ export default function Storyboard({
   const isValidLink = (link) => {
     if (!link) return false;
     return link.includes("drive.google.com") || link.includes("docs.google.com") || /^[\w-]{25,}$/.test(link);
+  };
+
+  const handleFileUpload = async (type, file) => {
+    if (!file) return;
+    if (!accessToken) {
+      alert('Please connect your Google account first');
+      return;
+    }
+
+    setUploading(prev => ({ ...prev, [type]: true }));
+    setUploadProgress(0);
+
+    try {
+      const result = await uploadToDrive(file, accessToken, (pct) => {
+        setUploadProgress(pct);
+      });
+
+      // Set permissions to "Anyone with link"
+      await setDriveFilePermissions(result.fileId, accessToken);
+
+      // Update the link
+      if (type === 'video') {
+        setVideoLink(result.shareLink);
+      } else {
+        setThumbLink(result.shareLink);
+      }
+
+      alert(`${type === 'video' ? 'Video' : 'Thumbnail'} uploaded successfully!`);
+    } catch (err) {
+      console.error('[Storyboard] Upload failed:', err);
+      alert(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(prev => ({ ...prev, [type]: false }));
+      setUploadProgress(0);
+    }
   };
 
   const handleSaveAssets = async () => {
@@ -221,12 +264,32 @@ export default function Storyboard({
                     value={videoLink}
                     onChange={(e) => setVideoLink(e.target.value)}
                     placeholder="https://drive.google.com/file/d/.../view"
-                    disabled={saving}
+                    disabled={saving || uploading.video}
                   />
+                  <input
+                    type="file"
+                    accept="video/*"
+                    ref={videoInputRef}
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleFileUpload('video', e.target.files[0])}
+                  />
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => videoInputRef.current?.click()}
+                    disabled={uploading.video || saving}
+                    title="Upload to Drive"
+                  >
+                    {uploading.video ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                  </button>
                   {videoLink && isValidLink(videoLink) && (
                     <a href={videoLink} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-icon"><ExternalLink size={14} /></a>
                   )}
                 </div>
+                {uploading.video && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--accent3)' }}>
+                    Uploading: {uploadProgress}%
+                  </div>
+                )}
             </div>
 
             <div className="form-group" style={{marginTop: "1rem"}}>
@@ -238,12 +301,32 @@ export default function Storyboard({
                     value={thumbLink}
                     onChange={(e) => setThumbLink(e.target.value)}
                     placeholder="https://drive.google.com/file/d/.../view"
-                    disabled={saving}
+                    disabled={saving || uploading.thumb}
                   />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={thumbInputRef}
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleFileUpload('thumb', e.target.files[0])}
+                  />
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => thumbInputRef.current?.click()}
+                    disabled={uploading.thumb || saving}
+                    title="Upload to Drive"
+                  >
+                    {uploading.thumb ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                  </button>
                   {thumbLink && isValidLink(thumbLink) && (
                     <a href={thumbLink} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-icon"><ExternalLink size={14} /></a>
                   )}
                 </div>
+                {uploading.thumb && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--accent3)' }}>
+                    Uploading: {uploadProgress}%
+                  </div>
+                )}
             </div>
 
             <div style={{marginTop: "1rem"}}>

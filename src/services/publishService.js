@@ -1,28 +1,38 @@
 // ============================================
 // src/services/publishService.js
-// CORE PUBLISH ENGINE — v3 (Server-Side Upload)
+// CORE PUBLISH ENGINE — v5 FINAL
 //
-// FIX (2026-05-28):
-// PEHLE: Browser → googleapis.com/drive → CORS block ❌
-// AB:    Browser → Apps Script doPost → Drive + YouTube
-//        server-side — CORS ka koi masla nahi ✅
-//
-// Flow:
-//   1. Browser Apps Script ko POST karta hai
-//      (fileId + youtubeToken + metadata)
-//   2. Apps Script server pe DriveApp se video padhta hai
-//   3. UrlFetchApp se YouTube pe seedha upload karta hai
-//   4. Video ID wapas aata hai
-//   5. Browser Sheet update karta hai
+// Dev (localhost): Vite proxy use karta hai → CORS fix
+// Prod (GitHub Pages): Direct googleapis.com → CORS
+//   already allowed kyunki deployed domain trusted hai
 // ============================================
 
 import { updateStory } from '../lib/api';
 import { ENV } from '../lib/config/env';
 
 // ============================================
+// DEV ya PROD detect karo
+// Localhost pe proxy use karo, production mein direct
+// ============================================
+const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// ============================================
+// API URLs — Dev mein proxy, Prod mein direct
+// ============================================
+const DRIVE_BASE = IS_DEV
+  ? '/drive-proxy/drive/v3'                  // → Vite proxy → googleapis.com/drive/v3
+  : 'https://www.googleapis.com/drive/v3';
+
+const YT_UPLOAD_BASE = IS_DEV
+  ? '/yt-upload-proxy/upload/youtube/v3'     // → Vite proxy → googleapis.com/upload/youtube/v3
+  : 'https://www.googleapis.com/upload/youtube/v3';
+
+const YT_API_BASE = IS_DEV
+  ? '/yt-api-proxy/youtube/v3'               // → Vite proxy → googleapis.com/youtube/v3
+  : 'https://www.googleapis.com/youtube/v3';
+
+// ============================================
 // HELPER: Drive URL se File ID nikalo
-// Input:  "https://drive.google.com/file/d/ABC123/view"
-// Output: "ABC123"
 // ============================================
 function extractDriveFileId(driveUrl) {
   if (!driveUrl) return null;
@@ -31,69 +41,177 @@ function extractDriveFileId(driveUrl) {
 }
 
 // ============================================
-// MAIN UPLOAD FUNCTION
-// Apps Script ko POST karo — server side upload
-//
-// Ye function browser se sirf ek POST request karta hai
-// Apps Script baaki sab kuch karta hai:
-//   - Drive se video padhna
-//   - YouTube pe upload karna
-//   - Thumbnail set karna
-//   - Playlist mein add karna
-//
-// CORS ka koi masla nahi — sab server pe hota hai
+// STEP 1: Drive se Video Blob download karo
+// Dev: /drive-proxy/FILEID?alt=media (Vite proxy handles CORS)
+// Prod: googleapis.com/drive/v3/files/FILEID?alt=media
 // ============================================
-async function uploadViaAppsScript({
-  scriptUrl,     // Apps Script deployed URL
-  fileId,        // Drive video file ID
-  thumbFileId,   // Drive thumbnail file ID (optional)
-  youtubeToken,  // User ka YouTube OAuth token
-  playlistId,    // YouTube playlist ID (optional)
-  metadata,      // { title, description, tags, categoryId, privacyStatus }
-}) {
-  console.log('[PublishService] Starting server-side upload via Apps Script...');
-  console.log('[PublishService] Drive fileId:', fileId);
+async function downloadDriveBlob(driveUrl, accessToken) {
+  const fileId = extractDriveFileId(driveUrl);
+  if (!fileId) throw new Error('Drive URL se file ID nahi mila: ' + driveUrl);
 
-  // POST body banao — sab data Apps Script ko bhejo
-  const payload = {
-    action:       "uploadVideoToYouTube",   // doPost mein ye action handle hoga
-    fileId:       fileId,                   // Drive video file ID
-    thumbFileId:  thumbFileId || null,      // Drive thumbnail ID (optional)
-    youtubeToken: youtubeToken,             // YouTube OAuth token
-    playlistId:   playlistId   || null,     // Playlist ID (optional)
-    metadata:     metadata,                 // YouTube metadata
-  };
+  const downloadUrl = `${DRIVE_BASE}/${fileId}?alt=media&supportsAllDrives=true`;
 
-  // Apps Script ko POST request bhejo
-  const res = await fetch(scriptUrl, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(payload),
+  console.log('[PublishService] Downloading Drive file:', fileId);
+  console.log('[PublishService] URL:', downloadUrl);
+
+  const res = await fetch(downloadUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    redirect: 'follow',
   });
 
-  // HTTP level error check karo
   if (!res.ok) {
-    throw new Error(`Apps Script request failed (HTTP ${res.status})`);
+    const errText = await res.text().catch(() => '');
+    throw new Error(
+      `Drive download failed (${res.status}). ` +
+      `File "Anyone with link" pe share karo. ` +
+      errText.substring(0, 150)
+    );
   }
 
-  // JSON response parse karo
-  const data = await res.json();
+  const blob = await res.blob();
 
-  // Apps Script ne error bheja?
-  if (data.error) {
-    throw new Error("Upload error: " + data.error);
+  if (blob.size < 1000) {
+    throw new Error(
+      `Drive file mili lekin empty hai (${blob.size} bytes). ` +
+      `File permission check karo.`
+    );
   }
 
-  // Success — video ID aur link return karo
-  if (!data.videoId) {
-    throw new Error("Apps Script ne videoId nahi diya — response: " + JSON.stringify(data));
+  console.log('[PublishService] Drive downloaded, size:', blob.size, 'bytes');
+  return { blob, fileId };
+}
+
+// ============================================
+// STEP 2: Thumbnail Blob (optional)
+// ============================================
+async function downloadThumbnailBlob(thumbUrl, accessToken) {
+  const fileId = extractDriveFileId(thumbUrl);
+  if (!fileId) return null;
+
+  try {
+    const url = `${DRIVE_BASE}/${fileId}?alt=media&supportsAllDrives=true`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      redirect: 'follow',
+    });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return blob.size > 500 ? blob : null;
+  } catch (err) {
+    console.warn('[PublishService] Thumbnail error (non-fatal):', err.message);
+    return null;
+  }
+}
+
+// ============================================
+// STEP 3: YouTube Resumable Upload
+// ============================================
+async function youtubeResumableUpload(accessToken, videoBlob, metadata, onProgress) {
+  const initRes = await fetch(
+    `${YT_UPLOAD_BASE}/videos?uploadType=resumable&part=snippet,status`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization:             `Bearer ${accessToken}`,
+        'Content-Type':            'application/json; charset=UTF-8',
+        'X-Upload-Content-Length': String(videoBlob.size),
+        'X-Upload-Content-Type':   videoBlob.type || 'video/mp4',
+      },
+      body: JSON.stringify(metadata),
+    }
+  );
+
+  if (!initRes.ok) {
+    const err = await initRes.text();
+    throw new Error(`YouTube upload init failed (${initRes.status}): ${err.substring(0, 300)}`);
   }
 
-  console.log('[PublishService] Upload complete! YouTube ID:', data.videoId);
-  return {
-    videoId: data.videoId,
-    ytLink:  data.ytLink,
-  };
+  const uploadUrl = initRes.headers.get('Location');
+  if (!uploadUrl) throw new Error('YouTube ne upload URL nahi diya');
+
+  console.log('[PublishService] YouTube session started');
+
+  const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+  let offset = 0;
+
+  while (offset < videoBlob.size) {
+    const end   = Math.min(offset + chunkSize, videoBlob.size);
+    const chunk = videoBlob.slice(offset, end);
+
+    const chunkRes = await fetch(uploadUrl, {
+      method:  'PUT',
+      headers: {
+        'Content-Range': `bytes ${offset}-${end - 1}/${videoBlob.size}`,
+        'Content-Type':  videoBlob.type || 'video/mp4',
+      },
+      body: chunk,
+    });
+
+    if (chunkRes.status === 308) {
+      const range = chunkRes.headers.get('Range');
+      offset = range ? parseInt(range.split('-')[1], 10) + 1 : end;
+      const pct = Math.round((offset / videoBlob.size) * 100);
+      if (onProgress) onProgress(pct);
+      console.log(`[PublishService] Upload: ${pct}%`);
+
+    } else if (chunkRes.ok) {
+      const data = await chunkRes.json();
+      console.log('[PublishService] Upload done! ID:', data.id);
+      return data.id;
+
+    } else {
+      const err = await chunkRes.text();
+      throw new Error(`Chunk failed (${chunkRes.status}): ${err.substring(0, 200)}`);
+    }
+  }
+
+  throw new Error('Upload loop ended without completion');
+}
+
+// ============================================
+// STEP 4: Thumbnail Upload
+// ============================================
+async function uploadYouTubeThumbnail(accessToken, videoId, thumbnailBlob) {
+  if (!thumbnailBlob) return;
+
+  const res = await fetch(
+    `${YT_UPLOAD_BASE}/thumbnails/set?videoId=${videoId}&uploadType=media`,
+    {
+      method:  'POST',
+      headers: {
+        Authorization:  `Bearer ${accessToken}`,
+        'Content-Type': thumbnailBlob.type || 'image/jpeg',
+      },
+      body: thumbnailBlob,
+    }
+  );
+
+  if (!res.ok) console.warn('[PublishService] Thumbnail failed (non-fatal):', res.status);
+  else console.log('[PublishService] Thumbnail uploaded');
+}
+
+// ============================================
+// STEP 5: Playlist Add
+// ============================================
+async function addToPlaylist(accessToken, videoId, playlistId) {
+  if (!playlistId) return;
+
+  const res = await fetch(`${YT_API_BASE}/playlistItems?part=snippet`, {
+    method:  'POST',
+    headers: {
+      Authorization:  `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      snippet: {
+        playlistId,
+        resourceId: { kind: 'youtube#video', videoId },
+      },
+    }),
+  });
+
+  if (!res.ok) console.warn('[PublishService] Playlist add failed (non-fatal):', res.status);
+  else console.log('[PublishService] Added to playlist:', playlistId);
 }
 
 // ============================================
@@ -101,144 +219,79 @@ async function uploadViaAppsScript({
 // ============================================
 class PublishService {
   constructor() {
-    // Currently uploading stories — duplicate prevent karo
     this.uploading = new Set();
-    // UI progress listeners
     this.listeners = new Set();
-    // Per-story progress (0–100)
     this.progress  = {};
   }
 
-  subscribe(listener) {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
+  subscribe(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  notify()            { this.listeners.forEach(l => l()); }
+  isUploading(id)     { return this.uploading.has(id); }
+  getProgress(id)     { return this.progress[id] || 0; }
 
-  notify() {
-    this.listeners.forEach(l => l());
-  }
-
-  isUploading(storyId) {
-    return this.uploading.has(storyId);
-  }
-
-  getProgress(storyId) {
-    return this.progress[storyId] || 0;
-  }
-
-  // ============================================
-  // FULL PUBLISH PIPELINE
-  //
-  // accessToken:    Google OAuth token (from useAuth)
-  // storyId:        Sheet row ID e.g. "Row-001-04"
-  // story:          Full story object from Sheet
-  // customMetadata: { title, description, tags,
-  //                   visibility, playlistId }
-  // onProgress:     callback(pct, message)
-  // ============================================
   async publishStory({ accessToken, storyId, story, customMetadata = {}, onProgress }) {
-    // Duplicate upload rokna
-    if (this.uploading.has(storyId)) {
-      console.warn('[PublishService] Already uploading:', storyId);
-      return;
-    }
-
-    // Zaruri fields check karo
-    if (!story.videoLink) {
-      throw new Error('Video Drive link missing — Storyboard mein video link save karo pehle');
-    }
-    if (!accessToken) {
-      throw new Error('YouTube account connected nahi — upar se Connect YouTube karo');
-    }
+    if (this.uploading.has(storyId)) return;
+    if (!story.videoLink) throw new Error('Video Drive link missing');
+    if (!accessToken)     throw new Error('YouTube connect nahi — upar se login karo');
 
     this.uploading.add(storyId);
     this.progress[storyId] = 0;
     this.notify();
 
-    // Sheet mein "publishing" mark karo — taake UI update ho
-    await updateStory(storyId, { dashStatus: 'publishing' }).catch(e =>
-      console.warn('[PublishService] publishing status update failed:', e.message)
-    );
+    await updateStory(storyId, { dashStatus: 'publishing' }).catch(() => {});
 
     try {
-      // ── Drive File IDs nikalo ──
-      const fileId     = extractDriveFileId(story.videoLink);
-      const thumbFileId = story.thumbLink
-        ? extractDriveFileId(story.thumbLink)
+      onProgress && onProgress(2,  'Downloading video from Drive...');
+      const { blob: videoBlob } = await downloadDriveBlob(story.videoLink, accessToken);
+
+      onProgress && onProgress(10, 'Downloading thumbnail...');
+      const thumbnailBlob = story.thumbLink
+        ? await downloadThumbnailBlob(story.thumbLink, accessToken)
         : null;
 
-      if (!fileId) {
-        throw new Error('Drive video URL se file ID nahi mila: ' + story.videoLink);
-      }
-
-      // ── YouTube metadata banao ──
       const tags = [
         ...(customMetadata.tags || []),
-        ...(story.hashtags
-          ? story.hashtags.split(' ').map(t => t.replace('#', '').trim())
-          : []),
-        ...(story.seoTags
-          ? story.seoTags.split(',').map(t => t.trim())
-          : []),
-      ].filter(Boolean).slice(0, 500);   // YouTube max 500 tags
+        ...(story.hashtags ? story.hashtags.split(' ').map(t => t.replace('#','').trim()) : []),
+        ...(story.seoTags   ? story.seoTags.split(',').map(t => t.trim())                 : []),
+      ].filter(Boolean).slice(0, 500);
 
-      const metadata = {
-        title:         customMetadata.title       || story.title || 'Untitled Story',
-        description:   customMetadata.description || story.story || story.storytext || '',
-        tags:          tags,
-        categoryId:    customMetadata.categoryId  || '22',
-        privacyStatus: customMetadata.visibility  || 'private',
+      const ytMetadata = {
+        snippet: {
+          title:           customMetadata.title       || story.title || 'Untitled',
+          description:     customMetadata.description || story.story || '',
+          tags,
+          categoryId:      customMetadata.categoryId  || '22',
+          defaultLanguage: 'en',
+        },
+        status: {
+          privacyStatus: customMetadata.visibility || 'private',
+          ...(customMetadata.publishAt
+            ? { publishAt: customMetadata.publishAt, privacyStatus: 'private' }
+            : {}),
+        },
       };
 
-      // ── Progress update: starting ──
-      onProgress && onProgress(5, 'Sending to Apps Script server...');
-      this.progress[storyId] = 5;
-      this.notify();
-
-      // ── APPS SCRIPT SERVER-SIDE UPLOAD ──
-      // Ye ek single POST request hai — sab kuch server pe hota hai
-      // Progress 5% se 90% tak simulate karte hain
-      // (server pe actual progress track nahi ho sakti browser se)
-      const progressInterval = setInterval(() => {
-        // Simulate slow progress — user ko pata chale ke kuch ho raha hai
-        const current = this.progress[storyId] || 5;
-        if (current < 88) {
-          this.progress[storyId] = current + 3;
-          onProgress && onProgress(
-            this.progress[storyId],
-            `Uploading to YouTube via server... ${this.progress[storyId]}%`
-          );
-          this.notify();
-        }
-      }, 3000); // har 3 second mein 3% badao
-
-      let videoId, ytLink;
-      try {
-        const result = await uploadViaAppsScript({
-          scriptUrl:    ENV.SCRIPT_URL,
-          fileId:       fileId,
-          thumbFileId:  thumbFileId,
-          youtubeToken: accessToken,
-          playlistId:   customMetadata.playlistId || ENV.YOUTUBE_PLAYLIST_ID || null,
-          metadata:     metadata,
-        });
-        videoId = result.videoId;
-        ytLink  = result.ytLink;
-      } finally {
-        // Interval hamesha clear karo chahe success ho ya error
-        clearInterval(progressInterval);
-      }
-
-      // ── Sheet update: published ──
-      onProgress && onProgress(95, 'Updating Sheet...');
-      await updateStory(storyId, {
-        dashStatus:  'published',
-        ytLink:      ytLink,
-        uploadError: '',
+      onProgress && onProgress(15, 'Starting YouTube upload...');
+      const videoId = await youtubeResumableUpload(accessToken, videoBlob, ytMetadata, (pct) => {
+        const mapped = 15 + Math.round(pct * 0.75);
+        this.progress[storyId] = mapped;
+        onProgress && onProgress(mapped, `Uploading: ${pct}%`);
+        this.notify();
       });
 
-      // ── Done ──
-      onProgress && onProgress(100, '✅ Published successfully!');
+      const ytLink = `https://www.youtube.com/watch?v=${videoId}`;
+
+      onProgress && onProgress(92, 'Uploading thumbnail...');
+      await uploadYouTubeThumbnail(accessToken, videoId, thumbnailBlob);
+
+      onProgress && onProgress(95, 'Adding to playlist...');
+      await addToPlaylist(accessToken, videoId,
+        customMetadata.playlistId || ENV.YOUTUBE_PLAYLIST_ID || null);
+
+      onProgress && onProgress(98, 'Updating Sheet...');
+      await updateStory(storyId, { dashStatus: 'published', ytLink, uploadError: '' });
+
+      onProgress && onProgress(100, '✅ Published!');
       this.progress[storyId] = 100;
       this.notify();
 
@@ -246,17 +299,14 @@ class PublishService {
       return ytLink;
 
     } catch (error) {
-      console.error('[PublishService] ❌ Publish failed:', error.message);
-
-      // Sheet mein error save karo
+      console.error('[PublishService] ❌ Failed:', error.message);
       await updateStory(storyId, {
-        dashStatus:  'publish_failed',
+        dashStatus: 'publish_failed',
         uploadError: error.message || 'Unknown error',
       }).catch(() => {});
-
       this.progress[storyId] = 0;
       this.notify();
-      throw error;   // UI ko bhi error dikhao
+      throw error;
 
     } finally {
       this.uploading.delete(storyId);
@@ -265,5 +315,4 @@ class PublishService {
   }
 }
 
-// Singleton — poori app mein ek hi instance
 export const publishService = new PublishService();

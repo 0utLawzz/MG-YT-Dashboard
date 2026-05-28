@@ -41,6 +41,13 @@ export const ENV = {
     import.meta.env.VITE_YOUTUBE_PLAYLIST_ID ||
     '',
 
+  // --- Drive Folder ID (for file uploads) ---
+  // Optional — agar set hai toh files is folder mein upload hongi
+  DRIVE_FOLDER_ID:
+    savedConfig.driveFolderId ||
+    import.meta.env.VITE_DRIVE_FOLDER_ID ||
+    '',
+
   // --- Legacy fields (kept for compatibility) ---
   SUPABASE_URL: savedConfig.apiUrl || import.meta.env.VITE_SUPABASE_URL,
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
