@@ -48,8 +48,8 @@ export async function uploadToDrive(file, accessToken, onProgress) {
   // Check if running on localhost (dev mode)
   const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const DRIVE_BASE = IS_DEV
-    ? '/drive-proxy/drive/v3'
-    : 'https://www.googleapis.com/drive/v3';
+    ? '/drive-proxy/upload/drive/v3'
+    : 'https://www.googleapis.com/upload/drive/v3';
 
   // Step 1: Initialize resumable upload session
   const metadata = {
@@ -76,8 +76,16 @@ export async function uploadToDrive(file, accessToken, onProgress) {
     throw new Error(`Drive upload init failed (${initRes.status}): ${errText.substring(0, 200)}`);
   }
 
+  // Log all headers for debugging
+  console.log('[DriveUpload] Init response headers:', Array.from(initRes.headers.entries()));
+  
   let uploadUrl = initRes.headers.get('Location');
-  if (!uploadUrl) throw new Error('Drive ne upload URL nahi diya');
+  if (!uploadUrl) {
+    console.error('[DriveUpload] No Location header in response');
+    console.error('[DriveUpload] Response status:', initRes.status);
+    console.error('[DriveUpload] Response body:', await initRes.text());
+    throw new Error('Drive ne upload URL nahi diya - Location header missing');
+  }
 
   // In dev mode, convert upload URL to proxy URL
   uploadUrl = proxyUrl(uploadUrl);
@@ -136,6 +144,8 @@ export async function setDriveFilePermissions(fileId, accessToken) {
     ? '/drive-proxy/drive/v3'
     : 'https://www.googleapis.com/drive/v3';
 
+  console.log('[DriveUpload] Setting permissions for file:', fileId);
+
   const res = await fetch(`${DRIVE_BASE}/files/${fileId}/permissions?supportsAllDrives=true`, {
     method: 'POST',
     headers: {
@@ -149,7 +159,8 @@ export async function setDriveFilePermissions(fileId, accessToken) {
   });
 
   if (!res.ok) {
-    console.warn('[DriveUpload] Failed to set permissions:', res.status);
+    const errText = await res.text();
+    console.error('[DriveUpload] Failed to set permissions:', res.status, errText);
     return false;
   }
 

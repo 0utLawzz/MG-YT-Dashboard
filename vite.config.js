@@ -23,6 +23,17 @@ export default defineConfig({
         rewrite: (path) =>
           path.replace(/^\/drive-proxy/, ''),
         secure: true,
+        configure: (proxy, options) => {
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            // Forward Location header for resumable uploads
+            const location = proxyRes.headers['location'];
+            if (location) {
+              // Convert direct Google API URL back to proxy URL
+              const proxyLocation = location.replace('https://www.googleapis.com', '/drive-proxy');
+              proxyRes.headers['location'] = proxyLocation;
+            }
+          });
+        },
       },
 
       // YouTube upload API calls proxy karo
