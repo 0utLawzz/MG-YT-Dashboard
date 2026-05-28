@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckCircle, RotateCcw, Edit3, ExternalLink, Save, X, Image as ImageIcon } from "lucide-react";
-import { getDriveEmbedLink, getDriveThumbnail } from "../../lib/api";
+import { getDriveDirectDownload, getDriveThumbnail } from "../../lib/api";
 import "./ReviewCard.css";
 
 export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish }) {
