@@ -8,6 +8,7 @@
 @import './themes/neon.css';
 @import './themes/midnight.css';
 @import './themes/glass.css';
+@import './themes/neobrutalism.css'; /* Neo-Brutalism BrandEx — Orange + Teal */
 
 /* --- Default CSS Custom Properties (Non-theme) --- */
 :root {

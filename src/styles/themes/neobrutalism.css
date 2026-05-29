@@ -1,0 +1,137 @@
+/* ============================================
+   NEO-BRUTALISM THEME — BrandEx Edition
+   Bright Little Stories Dashboard
+   ============================================
+   Colors:
+   --black   : #0C0C0C  (near-black borders + shadows)
+   --cream   : #F0E8D0  (warm background)
+   --orange  : #C94A00  (deep burnt orange — primary)
+   --teal    : #0A6B52  (dark forest teal — secondary)
+   --teal-lt : #0D9970  (bright teal accent)
+   --yellow  : #D4A800  (bold gold — warning/accent)
+   ============================================ */
+
+.theme-neobrutalism {
+  /* ── Backgrounds ───────────────────────── */
+  --bg:           #F0E8D0;   /* warm cream — main canvas */
+  --bg2:          #0C0C0C;   /* near-black — navbar, header */
+  --panel:        #FAF6EE;   /* off-white — cards/panels */
+  --panel-hover:  #F0E8D0;   /* cream hover state */
+
+  /* ── Borders ───────────────────────────── */
+  --border:       #0C0C0C;
+  --border-thin:  2px solid #0C0C0C;
+  --border-thick: 3px solid #0C0C0C;  /* used by .panel, .btn */
+
+  /* ── Accent Colors ─────────────────────── */
+  --accent:       #C94A00;   /* deep burnt orange — primary CTA, danger badges */
+  --accent2:      #0D9970;   /* bright teal — links, focus rings */
+  --accent3:      #D4A800;   /* bold yellow — warnings, highlights */
+  --accent4:      #0A6B52;   /* dark teal — success, status dot */
+  --accent5:      #8B2FC9;   /* purple — kept for scheduled badge */
+
+  /* ── Text ──────────────────────────────── */
+  --text:         #0C0C0C;   /* near-black on cream — high contrast */
+  --dim:          rgba(12, 12, 12, 0.60);
+  --dimmer:       rgba(12, 12, 12, 0.35);
+
+  /* ── Shadows — hard offset (brutalist) ─── */
+  --shadow:       5px 5px 0px #0C0C0C;
+  --shadow-accent: 5px 5px 0px #C94A00;
+  --shadow-sm:    3px 3px 0px #0C0C0C;
+
+  /* ── Shape ─────────────────────────────── */
+  --radius:       0px;   /* no border-radius — hard corners */
+}
+
+/* ── Override: Header uses dark bg with light text ── */
+.theme-neobrutalism .header {
+  background: #0C0C0C;
+  border-bottom: 3px solid #0C0C0C;
+}
+
+/* Logo gradient → flat orange + teal in neo mode */
+.theme-neobrutalism .logo-text {
+  background: none;
+  -webkit-text-fill-color: unset;
+  color: #FAF6EE;
+  letter-spacing: 0.18em;
+}
+
+.theme-neobrutalism .logo-sub {
+  color: rgba(255,255,255,0.45);
+}
+
+.theme-neobrutalism .logo-icon {
+  color: #C94A00;
+  filter: none;   /* remove glow — brutalism stays flat */
+}
+
+/* ── Status indicator → teal in neo mode ── */
+.theme-neobrutalism .status-indicator {
+  border-color: #0D9970;
+  background: rgba(13, 153, 112, 0.12);
+}
+.theme-neobrutalism .status-dot {
+  background: #0D9970;
+  box-shadow: none;   /* no glow */
+}
+.theme-neobrutalism .status-text {
+  color: #0D9970;
+}
+
+/* ── Tabs → hard underline style ── */
+.theme-neobrutalism .tab-bar {
+  border-bottom: 3px solid #0C0C0C;
+  background: #F0E8D0;
+}
+.theme-neobrutalism .tab {
+  color: rgba(12,12,12,0.55);
+  border-right: 1.5px solid #ddd4ba;
+}
+.theme-neobrutalism .tab.active {
+  color: #0C0C0C;
+  border-bottom: 4px solid #C94A00;
+  background: #FAF6EE;
+}
+.theme-neobrutalism .tab:hover:not(.active) {
+  background: #E8DFC7;
+  color: #0C0C0C;
+}
+
+/* ── Scrollbar ── */
+.theme-neobrutalism ::-webkit-scrollbar-thumb {
+  background: #C94A00;
+  border: 2px solid #0C0C0C;
+  border-radius: 0;
+}
+
+/* ── Badges — keep readable on cream bg ── */
+.theme-neobrutalism .badge-draft     { background: rgba(12,12,12,0.08); border-color: rgba(12,12,12,0.4); color: rgba(12,12,12,0.6); }
+.theme-neobrutalism .badge-complete  { background: rgba(13,153,112,0.12); border-color: #0D9970; color: #0A6B52; }
+.theme-neobrutalism .badge-review    { background: rgba(201,74,0,0.10); border-color: #C94A00; color: #C94A00; }
+.theme-neobrutalism .badge-approved  { background: rgba(10,107,82,0.12); border-color: #0A6B52; color: #0A6B52; }
+.theme-neobrutalism .badge-scheduled { background: rgba(212,168,0,0.15); border-color: #D4A800; color: #8a6800; }
+.theme-neobrutalism .badge-published { background: rgba(139,47,201,0.10); border-color: #8B2FC9; color: #8B2FC9; }
+
+/* ── Input focus ring → orange ── */
+.theme-neobrutalism .input:focus {
+  border-color: #C94A00;
+  box-shadow: 0 0 0 2px rgba(201,74,0,0.20);
+}
+
+/* ── Panel hover shadow → bigger + black ── */
+.theme-neobrutalism .panel:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 8px 8px 0px #0C0C0C;
+}
+
+/* ── Login screen ── */
+.theme-neobrutalism .login-screen {
+  background: #F0E8D0;
+}
+.theme-neobrutalism .login-screen .logo-text {
+  color: #0C0C0C;
+  -webkit-text-fill-color: #0C0C0C;
+  background: none;
+}

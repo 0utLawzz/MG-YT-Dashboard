@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from '../context/ThemeContext'; // Theme switcher ke liye
 import './SettingsDrawer.css';
 
 const DEFAULT_CONFIG = {
@@ -13,6 +14,17 @@ const DEFAULT_CONFIG = {
 };
 
 export default function SettingsDrawer({ open, onClose }) {
+  const { theme, setTheme } = useTheme(); // current theme aur setter
+
+  // Saare available themes — naam + label + preview color
+  const THEMES = [
+    { key: 'dark',          label: 'Dark',          color: '#FF1744' },
+    { key: 'light',         label: 'Light',         color: '#0288D1' },
+    { key: 'neon',          label: 'Neon',          color: '#76FF03' },
+    { key: 'midnight',      label: 'Midnight',      color: '#AA00FF' },
+    { key: 'glass',         label: 'Glass',         color: '#80DEEA' },
+    { key: 'neobrutalism',  label: 'Neo-Brutalism', color: '#C94A00' }, // naya theme
+  ];
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('bls_config');
@@ -52,6 +64,35 @@ export default function SettingsDrawer({ open, onClose }) {
 
         <div className="drawer-body">
           
+          {/* ── THEME SWITCHER ─────────────────────────────
+              Har theme ek colored dot + label ke saath show hoti hai.
+              Active theme highlight hoti hai border se.
+              setTheme() ThemeContext mein update karta hai aur localStorage mein save karta hai.
+          ─────────────────────────────────────────────── */}
+          <h4 style={{ margin: '0.5rem 0', color: 'var(--accent3)' }}>🎨 Theme</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            {THEMES.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTheme(t.key)}
+                className="btn btn-sm"
+                style={{
+                  justifyContent: 'flex-start',
+                  gap: '0.5rem',
+                  borderColor: theme === t.key ? t.color : 'var(--border)',
+                  background:  theme === t.key ? `${t.color}22` : 'var(--panel)',
+                  color: 'var(--text)',
+                  boxShadow: theme === t.key ? `3px 3px 0 ${t.color}` : 'var(--shadow-sm)',
+                }}
+              >
+                {/* Colored dot — theme ki pehchaan */}
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, border: '2px solid var(--border)', display: 'inline-block', flexShrink: 0 }} />
+                {t.label}
+                {theme === t.key && ' ✓'}
+              </button>
+            ))}
+          </div>
+
           <h4 style={{ margin: "0.5rem 0", color: "var(--accent2)" }}>Endpoints</h4>
           
           <div className="form-group">
