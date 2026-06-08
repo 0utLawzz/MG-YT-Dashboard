@@ -25,7 +25,11 @@ export default function Header({ onRefresh, onToggleSettings }) {
         <div className="logo-group">
           <Sparkles className="logo-icon" size={28} />
           <div>
-            <h1 className="logo-text">BRIGHT LITTLE STORIES</h1>
+            <h1 className="logo-text">
+              <span>BRIGHT</span>
+              <span className="logo-dot">.</span>
+              <span className="logo-stories">STORIES</span>
+            </h1>
             <span className="logo-sub">Production Dashboard</span>
           </div>
         </div>

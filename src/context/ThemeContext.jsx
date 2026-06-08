@@ -5,7 +5,7 @@ const ThemeContext = createContext();
  
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {
-    return localStorage.getItem('bls_theme') || 'dark';
+    return localStorage.getItem('bls_theme') || 'neobrutalism';
   });
 
   useEffect(() => {

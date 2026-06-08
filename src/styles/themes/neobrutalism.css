@@ -1,137 +1,688 @@
 /* ============================================
-   NEO-BRUTALISM THEME — BrandEx Edition
-   Bright Little Stories Dashboard
+   NEO-BRUTALISM BRANDEX THEME
+   Bright Little Stories — Production Dashboard
    ============================================
-   Colors:
-   --black   : #0C0C0C  (near-black borders + shadows)
-   --cream   : #F0E8D0  (warm background)
-   --orange  : #C94A00  (deep burnt orange — primary)
-   --teal    : #0A6B52  (dark forest teal — secondary)
-   --teal-lt : #0D9970  (bright teal accent)
-   --yellow  : #D4A800  (bold gold — warning/accent)
+   Palette:
+   --black   #0C0C0C  borders, shadows, navbar
+   --cream   #F0E8D0  page background
+   --cream2  #E8DFC7  alt bg, table even rows
+   --white   #FAF6EE  cards, inputs, modals
+   --orange  #C94A00  CTA, active, key accent
+   --teal    #0A6B52  dark section bg, success
+   --teal-lt #0D9970  links, focus, logo accent
+   --yellow  #D4A800  warnings, stamps
+   --gray    #666666  footer, secondary labels
+   --dim     #555555  body text on cream
+   Rules: NO gradients · NO blur · NO glass
+          Hard corners on inputs · 6px max on cards
+          Shadow always bottom-right X Y 0
    ============================================ */
 
 .theme-neobrutalism {
-  /* ── Backgrounds ───────────────────────── */
-  --bg:           #F0E8D0;   /* warm cream — main canvas */
-  --bg2:          #0C0C0C;   /* near-black — navbar, header */
-  --panel:        #FAF6EE;   /* off-white — cards/panels */
-  --panel-hover:  #F0E8D0;   /* cream hover state */
+  /* ── Backgrounds ─────────────────────── */
+  --bg:            #F0E8D0;   /* warm cream */
+  --bg2:           #0C0C0C;   /* navbar / dark header */
+  --panel:         #FAF6EE;   /* card / modal surfaces */
+  --panel-hover:   #E8DFC7;   /* alt cream on hover */
 
-  /* ── Borders ───────────────────────────── */
-  --border:       #0C0C0C;
-  --border-thin:  2px solid #0C0C0C;
-  --border-thick: 3px solid #0C0C0C;  /* used by .panel, .btn */
+  /* ── Border tokens ───────────────────── */
+  --border:        #0C0C0C;
+  --border-thin:   2px solid #0C0C0C;
+  --border-thick:  3px solid #0C0C0C;
 
-  /* ── Accent Colors ─────────────────────── */
-  --accent:       #C94A00;   /* deep burnt orange — primary CTA, danger badges */
-  --accent2:      #0D9970;   /* bright teal — links, focus rings */
-  --accent3:      #D4A800;   /* bold yellow — warnings, highlights */
-  --accent4:      #0A6B52;   /* dark teal — success, status dot */
-  --accent5:      #8B2FC9;   /* purple — kept for scheduled badge */
+  /* ── Semantic accent aliases ─────────── */
+  --accent:        #C94A00;   /* orange — primary CTA */
+  --accent2:       #0D9970;   /* teal-lt — links/focus */
+  --accent3:       #D4A800;   /* yellow — warnings */
+  --accent4:       #0A6B52;   /* teal — success */
+  --accent5:       #8B2FC9;   /* purple — published */
+  --error:         #C94A00;   /* reuse orange for error */
 
-  /* ── Text ──────────────────────────────── */
-  --text:         #0C0C0C;   /* near-black on cream — high contrast */
-  --dim:          rgba(12, 12, 12, 0.60);
-  --dimmer:       rgba(12, 12, 12, 0.35);
+  /* ── Text ────────────────────────────── */
+  --text:          #0C0C0C;
+  --dim:           #555555;
+  --dimmer:        rgba(12,12,12,0.40);
 
-  /* ── Shadows — hard offset (brutalist) ─── */
-  --shadow:       5px 5px 0px #0C0C0C;
-  --shadow-accent: 5px 5px 0px #C94A00;
-  --shadow-sm:    3px 3px 0px #0C0C0C;
+  /* ── Shadows — hard offset, blur = 0 ─── */
+  --shadow-sm:     3px 3px 0 #0C0C0C;
+  --shadow:        5px 5px 0 #0C0C0C;
+  --shadow-lg:     7px 7px 0 #0C0C0C;
+  --shadow-accent: 5px 5px 0 #C94A00;
 
-  /* ── Shape ─────────────────────────────── */
-  --radius:       0px;   /* no border-radius — hard corners */
+  /* ── Radius — 0 on inputs, 6px on cards ─ */
+  --radius:        0px;
+  --radius-sm:     6px;
+
+  /* ── Transition ──────────────────────── */
+  --transition:    all 0.12s ease;
+
+  /* ── Fonts ───────────────────────────── */
+  --font-body:     'Space Grotesk', Arial, sans-serif;
+  --font-heading:  'Bebas Neue', 'Arial Black', sans-serif;
+  --font-mono:     'DM Mono', 'Courier New', monospace;
 }
 
-/* ── Override: Header uses dark bg with light text ── */
+/* ══════════════════════════════════════════
+   TYPOGRAPHY OVERRIDES
+   ══════════════════════════════════════════ */
+.theme-neobrutalism body {
+  font-family: 'Space Grotesk', Arial, sans-serif;
+  background: #F0E8D0;
+  color: #0C0C0C;
+}
+
+.theme-neobrutalism h1,
+.theme-neobrutalism h2,
+.theme-neobrutalism h3,
+.theme-neobrutalism h4,
+.theme-neobrutalism h5,
+.theme-neobrutalism h6 {
+  font-family: 'Bebas Neue', 'Arial Black', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+/* ══════════════════════════════════════════
+   SCROLLBAR — Neo spec
+   ══════════════════════════════════════════ */
+.theme-neobrutalism ::-webkit-scrollbar { width: 8px; }
+.theme-neobrutalism ::-webkit-scrollbar-track { background: #F0E8D0; }
+.theme-neobrutalism ::-webkit-scrollbar-thumb {
+  background: #C94A00;
+  border: 2px solid #0C0C0C;
+  border-radius: 0;
+}
+.theme-neobrutalism ::-webkit-scrollbar-thumb:hover { background: #a83c00; }
+
+/* ══════════════════════════════════════════
+   FOCUS RING
+   ══════════════════════════════════════════ */
+.theme-neobrutalism :focus-visible {
+  outline: 3px solid #0D9970;
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════
+   .panel — Card / Panel surface
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .panel {
+  background: #FAF6EE;
+  border: 3px solid #0C0C0C;
+  border-radius: 6px;
+  box-shadow: 5px 5px 0 #0C0C0C;
+  transition: all 0.12s ease;
+}
+.theme-neobrutalism .panel:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 8px 8px 0 #0C0C0C;
+}
+
+/* ══════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 24px;
+  border: 2.5px solid #0C0C0C;
+  border-radius: 6px;
+  background: #FAF6EE;
+  color: #0C0C0C;
+  box-shadow: 5px 5px 0 #0C0C0C;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.theme-neobrutalism .btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 #0C0C0C;
+}
+.theme-neobrutalism .btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+/* Primary */
+.theme-neobrutalism .btn-primary {
+  background: #C94A00;
+  color: #ffffff;
+  border-color: #0C0C0C;
+  box-shadow: 5px 5px 0 #0C0C0C;
+}
+.theme-neobrutalism .btn-primary:hover {
+  background: #a83c00;
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 #0C0C0C;
+}
+
+/* Secondary (uses default .btn styling = white bg) */
+.theme-neobrutalism .btn-secondary {
+  background: #FAF6EE;
+  color: #0C0C0C;
+  border-color: #0C0C0C;
+}
+
+/* Success */
+.theme-neobrutalism .btn-success {
+  background: #0D9970;
+  color: #ffffff;
+  border-color: #0C0C0C;
+}
+
+/* Warning */
+.theme-neobrutalism .btn-warning {
+  background: #D4A800;
+  color: #0C0C0C;
+  border-color: #0C0C0C;
+}
+
+/* Danger */
+.theme-neobrutalism .btn-danger {
+  background: #FAF6EE;
+  color: #C94A00;
+  border-color: #C94A00;
+  box-shadow: 5px 5px 0 #C94A00;
+}
+.theme-neobrutalism .btn-danger:hover {
+  background: rgba(201,74,0,0.10);
+  box-shadow: 7px 7px 0 #C94A00;
+}
+
+/* Small variant */
+.theme-neobrutalism .btn-sm {
+  padding: 6px 14px;
+  font-size: 11px;
+}
+.theme-neobrutalism .btn-icon {
+  padding: 8px;
+  line-height: 1;
+}
+
+/* ══════════════════════════════════════════
+   INPUTS / FORM FIELDS
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .input,
+.theme-neobrutalism select.input,
+.theme-neobrutalism textarea.input {
+  background: #FAF6EE;
+  border: 2px solid #0C0C0C;
+  border-radius: 0px;            /* HARD CORNERS */
+  padding: 8px 12px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  color: #0C0C0C;
+  transition: all 0.12s ease;
+  box-shadow: none;
+}
+.theme-neobrutalism .input:focus,
+.theme-neobrutalism select.input:focus,
+.theme-neobrutalism textarea.input:focus {
+  border-color: #C94A00;
+  box-shadow: 0 0 0 2px rgba(201,74,0,0.20);
+  outline: none;
+}
+.theme-neobrutalism .input::placeholder {
+  color: rgba(12,12,12,0.35);
+}
+
+/* ══════════════════════════════════════════
+   BADGES — Status labels
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  border: 2px solid;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.theme-neobrutalism .badge-draft {
+  background: rgba(12,12,12,0.08);
+  border-color: #555555;
+  color: #555555;
+}
+.theme-neobrutalism .badge-complete {
+  background: rgba(13,153,112,0.12);
+  border-color: #0D9970;
+  color: #0A6B52;
+}
+.theme-neobrutalism .badge-review {
+  background: rgba(201,74,0,0.10);
+  border-color: #C94A00;
+  color: #C94A00;
+}
+.theme-neobrutalism .badge-approved {
+  background: rgba(10,107,82,0.12);
+  border-color: #0A6B52;
+  color: #0A6B52;
+}
+.theme-neobrutalism .badge-scheduled {
+  background: rgba(212,168,0,0.15);
+  border-color: #D4A800;
+  color: #8a6800;
+}
+.theme-neobrutalism .badge-published {
+  background: rgba(139,47,201,0.10);
+  border-color: #8B2FC9;
+  color: #8B2FC9;
+}
+
+/* ══════════════════════════════════════════
+   NAVBAR / HEADER — ALWAYS DARK
+   ══════════════════════════════════════════ */
 .theme-neobrutalism .header {
   background: #0C0C0C;
   border-bottom: 3px solid #0C0C0C;
+  height: 58px;
 }
 
-/* Logo gradient → flat orange + teal in neo mode */
+/* Logo: BRIGHT in #FAF6EE, . in #C94A00, STORIES in #0D9970 */
 .theme-neobrutalism .logo-text {
+  font-family: 'Bebas Neue', 'Arial Black', sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
   background: none;
   -webkit-text-fill-color: unset;
   color: #FAF6EE;
-  letter-spacing: 0.18em;
 }
-
+.theme-neobrutalism .logo-dot {
+  color: #C94A00;
+}
+.theme-neobrutalism .logo-stories {
+  color: #0D9970;
+}
 .theme-neobrutalism .logo-sub {
-  color: rgba(255,255,255,0.45);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.40);
+  display: block;
 }
-
 .theme-neobrutalism .logo-icon {
   color: #C94A00;
-  filter: none;   /* remove glow — brutalism stays flat */
+  filter: none;
+  animation: none;
 }
 
-/* ── Status indicator → teal in neo mode ── */
+/* Status badge in header */
 .theme-neobrutalism .status-indicator {
-  border-color: #0D9970;
-  background: rgba(13, 153, 112, 0.12);
+  border: 2px solid #0D9970;
+  background: rgba(13,153,112,0.12);
+  border-radius: 4px;
 }
 .theme-neobrutalism .status-dot {
   background: #0D9970;
   box-shadow: none;   /* no glow */
 }
 .theme-neobrutalism .status-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
   color: #0D9970;
+  letter-spacing: 0.5px;
 }
 
-/* ── Tabs → hard underline style ── */
-.theme-neobrutalism .tab-bar {
-  border-bottom: 3px solid #0C0C0C;
-  background: #F0E8D0;
-}
-.theme-neobrutalism .tab {
-  color: rgba(12,12,12,0.55);
-  border-right: 1.5px solid #ddd4ba;
-}
-.theme-neobrutalism .tab.active {
-  color: #0C0C0C;
-  border-bottom: 4px solid #C94A00;
-  background: #FAF6EE;
-}
-.theme-neobrutalism .tab:hover:not(.active) {
-  background: #E8DFC7;
-  color: #0C0C0C;
-}
-
-/* ── Scrollbar ── */
-.theme-neobrutalism ::-webkit-scrollbar-thumb {
-  background: #C94A00;
-  border: 2px solid #0C0C0C;
+/* Clock display */
+.theme-neobrutalism .header-clock {
+  font-family: 'DM Mono', monospace;
+  color: rgba(255,255,255,0.45);
+  border: 2px solid rgba(255,255,255,0.15);
   border-radius: 0;
 }
 
-/* ── Badges — keep readable on cream bg ── */
-.theme-neobrutalism .badge-draft     { background: rgba(12,12,12,0.08); border-color: rgba(12,12,12,0.4); color: rgba(12,12,12,0.6); }
-.theme-neobrutalism .badge-complete  { background: rgba(13,153,112,0.12); border-color: #0D9970; color: #0A6B52; }
-.theme-neobrutalism .badge-review    { background: rgba(201,74,0,0.10); border-color: #C94A00; color: #C94A00; }
-.theme-neobrutalism .badge-approved  { background: rgba(10,107,82,0.12); border-color: #0A6B52; color: #0A6B52; }
-.theme-neobrutalism .badge-scheduled { background: rgba(212,168,0,0.15); border-color: #D4A800; color: #8a6800; }
-.theme-neobrutalism .badge-published { background: rgba(139,47,201,0.10); border-color: #8B2FC9; color: #8B2FC9; }
-
-/* ── Input focus ring → orange ── */
-.theme-neobrutalism .input:focus {
+/* Header buttons — override to dark-bg variants */
+.theme-neobrutalism .header .btn {
+  background: #FAF6EE;
+  color: #0C0C0C;
+  border: 2.5px solid #FAF6EE;
+  box-shadow: 3px 3px 0 rgba(255,255,255,0.3);
+}
+.theme-neobrutalism .header .btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(255,255,255,0.3);
+}
+.theme-neobrutalism .header .btn-danger {
+  background: transparent;
+  color: #C94A00;
   border-color: #C94A00;
-  box-shadow: 0 0 0 2px rgba(201,74,0,0.20);
+  box-shadow: 3px 3px 0 #C94A00;
+}
+.theme-neobrutalism .header .btn-danger:hover {
+  background: rgba(201,74,0,0.15);
+  box-shadow: 5px 5px 0 #C94A00;
 }
 
-/* ── Panel hover shadow → bigger + black ── */
-.theme-neobrutalism .panel:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 8px 8px 0px #0C0C0C;
+/* ══════════════════════════════════════════
+   TABS BAR
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .tabs-bar {
+  background: #F0E8D0;
+  border-bottom: 3px solid #0C0C0C;
+}
+.theme-neobrutalism .tab-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(12,12,12,0.50);
+  border: none;
+  border-right: 2px solid #ddd4ba;
+  background: transparent;
+  transition: all 0.12s ease;
+}
+.theme-neobrutalism .tab-btn:first-child {
+  border-left: 2px solid #ddd4ba;
+}
+.theme-neobrutalism .tab-btn:hover:not(.active) {
+  background: #E8DFC7;
+  color: #0C0C0C;
+}
+.theme-neobrutalism .tab-btn.active {
+  background: #FAF6EE;
+  color: #0C0C0C;
+  border-bottom: 4px solid #C94A00;
+  box-shadow: inset 0 -1px 0 #C94A00;
+}
+.theme-neobrutalism .tab-indicator {
+  background: #C94A00;
+  box-shadow: none;   /* no glow */
 }
 
-/* ── Login screen ── */
+/* ══════════════════════════════════════════
+   KPI CARDS — Brutalist redesign
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .kpi-card {
+  border-radius: 6px;
+}
+.theme-neobrutalism .kpi-icon {
+  border: 2.5px solid var(--kpi-color, #C94A00);
+  background: rgba(12,12,12,0.05);
+  border-radius: 4px;
+}
+.theme-neobrutalism .kpi-value {
+  font-family: 'Bebas Neue', 'Arial Black', sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
+}
+.theme-neobrutalism .kpi-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #555555;
+}
+.theme-neobrutalism .kpi-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(12,12,12,0.40);
+}
+/* Remove blur glow — brutalism is flat */
+.theme-neobrutalism .kpi-glow { display: none; }
+
+/* ══════════════════════════════════════════
+   PIPELINE — Brutalist bars
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .pipeline-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: #0C0C0C;
+  border-bottom: 2.5px solid #0C0C0C;
+}
+.theme-neobrutalism .stage-bar-track {
+  background: rgba(12,12,12,0.10);
+  border: 1.5px solid #0C0C0C;
+  border-radius: 0;
+  height: 8px;
+}
+.theme-neobrutalism .stage-bar-fill {
+  box-shadow: none;   /* NO glow — flat fill only */
+  border-radius: 0;
+}
+.theme-neobrutalism .stage-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.theme-neobrutalism .stage-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+}
+.theme-neobrutalism .pipeline-total {
+  border-top: 2.5px solid #0C0C0C;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #555555;
+}
+.theme-neobrutalism .pipeline-total-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: #0C0C0C;
+}
+
+/* ══════════════════════════════════════════
+   STORY TABLE — Hard cream table
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .table-wrapper {
+  border: 3px solid #0C0C0C;
+  box-shadow: 5px 5px 0 #0C0C0C;
+  border-radius: 0;
+}
+.theme-neobrutalism .story-table thead {
+  background: #0C0C0C;
+  border-bottom: 3px solid #0C0C0C;
+}
+.theme-neobrutalism .story-table th {
+  color: rgba(255,255,255,0.75);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.theme-neobrutalism .story-row {
+  background: #FAF6EE;
+  border-bottom: 1.5px solid #ddd4ba;
+}
+.theme-neobrutalism .story-row:nth-child(even) {
+  background: #E8DFC7;
+}
+.theme-neobrutalism .story-row:hover,
+.theme-neobrutalism .story-row:nth-child(even):hover {
+  background: #d4ccb4;
+}
+.theme-neobrutalism .row-category {
+  color: #0D9970;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+}
+.theme-neobrutalism .row-age {
+  font-family: 'DM Mono', monospace;
+  color: #555555;
+}
+.theme-neobrutalism .story-count-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #555555;
+}
+
+/* ══════════════════════════════════════════
+   SETTINGS DRAWER — Brutalist sidebar
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .settings-drawer {
+  background: #FAF6EE;
+  border-left: 3px solid #0C0C0C;
+  box-shadow: -7px 0 0 #0C0C0C;
+}
+.theme-neobrutalism .drawer-header {
+  background: #0C0C0C;
+  border-bottom: 3px solid #0C0C0C;
+}
+.theme-neobrutalism .drawer-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  color: #FAF6EE;
+}
+.theme-neobrutalism .drawer-footer {
+  border-top: 3px solid #0C0C0C;
+  background: #F0E8D0;
+}
+.theme-neobrutalism .form-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #555555;
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════
+   MODAL — Brutalist popup
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .modal {
+  background: #FAF6EE;
+  border: 3px solid #0C0C0C;
+  border-radius: 0;
+  box-shadow: 10px 10px 0 #0C0C0C;
+}
+.theme-neobrutalism .modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
+/* ══════════════════════════════════════════
+   LOADER — Brutalist spinner
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .loader {
+  border: 4px solid rgba(12,12,12,0.12);
+  border-top-color: #C94A00;
+  border-radius: 0;      /* square spinner — brutalist */
+}
+
+/* ══════════════════════════════════════════
+   LOGIN SCREEN
+   ══════════════════════════════════════════ */
 .theme-neobrutalism .login-screen {
   background: #F0E8D0;
 }
 .theme-neobrutalism .login-screen .logo-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
   color: #0C0C0C;
-  -webkit-text-fill-color: #0C0C0C;
+  -webkit-text-fill-color: unset;
   background: none;
+  letter-spacing: 0.12em;
+}
+.theme-neobrutalism .login-screen .btn-primary {
+  background: #C94A00;
+  color: #fff;
+  border: 2.5px solid #0C0C0C;
+  box-shadow: 5px 5px 0 #0C0C0C;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+}
+
+/* ══════════════════════════════════════════
+   DONUT / BAR CHART PANELS
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .donut-panel,
+.theme-neobrutalism .bar-chart-panel {
+  background: #FAF6EE;
+  border: 3px solid #0C0C0C;
+  border-radius: 6px;
+  box-shadow: 5px 5px 0 #0C0C0C;
+}
+.theme-neobrutalism .donut-panel:hover,
+.theme-neobrutalism .bar-chart-panel:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 8px 8px 0 #0C0C0C;
+}
+
+/* ══════════════════════════════════════════
+   SECTION STAMP (decorative)
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .stamp {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 2px;
+  border: 3px solid #0C0C0C;
+  border-radius: 6px;
+  padding: 6px 16px;
+  box-shadow: 5px 5px 0 #0C0C0C;
+  display: inline-block;
+}
+.theme-neobrutalism .stamp-yellow {
+  background: #D4A800;
+  color: #0C0C0C;
+  transform: rotate(-8deg);
+}
+.theme-neobrutalism .stamp-teal {
+  background: #0D9970;
+  color: #ffffff;
+  transform: rotate(5deg);
+}
+.theme-neobrutalism .stamp-orange {
+  background: #C94A00;
+  color: #ffffff;
+  transform: rotate(-4deg);
+}
+
+/* ══════════════════════════════════════════
+   DASHBOARD LAYOUT
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .dashboard {
+  padding: 1.5rem;
+  background: #F0E8D0;
+}
+.theme-neobrutalism .kpi-grid {
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.theme-neobrutalism .dash-grid {
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ══════════════════════════════════════════
+   ERROR & LOADING STATES
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .error-state {
+  color: #C94A00;
+  background: rgba(201,74,0,0.08);
+  border: 2.5px solid #C94A00;
+  box-shadow: 5px 5px 0 #C94A00;
+  border-radius: 0;
+}
+.theme-neobrutalism .loading-state {
+  color: #555555;
+}
+
+/* ══════════════════════════════════════════
+   SECTION HEADERS (used inside tabs)
+   ══════════════════════════════════════════ */
+.theme-neobrutalism .section-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #0C0C0C;
+  color: #FAF6EE;
+  padding: 3px 10px;
+  border-radius: 0;
+  display: inline-block;
 }

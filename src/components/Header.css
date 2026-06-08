@@ -38,7 +38,12 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  white-space: nowrap;
 }
+
+/* Theme-specific overrides set these colors. Base = inherit from logo-text */
+.logo-dot { }
+.logo-stories { }
 
 .logo-sub {
   font-size: 0.65rem;

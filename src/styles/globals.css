@@ -2,6 +2,9 @@
    BRIGHT LITTLE STORIES – Global Styles
    ============================================ */
 
+/* --- Google Fonts (Neo-Brutalism BrandEx) --- */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&family=DM+Mono:wght@500&display=swap');
+
 /* --- Themes --- */
 @import './themes/dark.css';
 @import './themes/light.css';
@@ -90,6 +93,7 @@ a:hover {
 ::-webkit-scrollbar-thumb {
   background: var(--panel);
   border: 2px solid var(--border);
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
