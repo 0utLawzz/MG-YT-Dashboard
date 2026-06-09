@@ -6,7 +6,10 @@ describe('Tabs Component', () => {
   it('renders all tabs correctly', () => {
     render(<Tabs activeTab="dashboard" onChange={vi.fn()} />);
     expect(screen.getByText(/Dashboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/Upload/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stories/i)).toBeInTheDocument();
+    expect(screen.getByText(/Storyboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review/i)).toBeInTheDocument();
     expect(screen.getByText(/Publish/i)).toBeInTheDocument();
+    expect(screen.getByText(/Analytics/i)).toBeInTheDocument();
   });
 });
