@@ -140,27 +140,24 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
   // ============================================
   // Fetch YouTube Playlists when authenticated
   // ============================================
-  useEffect(() => {
+  const loadPlaylists = useCallback(async () => {
     if (!isAuthenticated || !accessToken) return;
+    setLoadingPlaylists(true);
+    setPlaylistError('');
+    try {
+      const list = await fetchYouTubePlaylists(accessToken);
+      setPlaylists(list);
+      setSelectedPlaylist(prev => prev ? prev : (list.length > 0 ? list[0].id : ''));
+    } catch (err) {
+      setPlaylistError('Failed to load playlists: ' + err.message);
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  }, [isAuthenticated, accessToken]);
 
-    const loadPlaylistsOnce = async () => {
-      setLoadingPlaylists(true);
-      setPlaylistError('');
-      try {
-        const list = await fetchYouTubePlaylists(accessToken);
-        setPlaylists(list);
-        if (!selectedPlaylist && list.length > 0) {
-          setSelectedPlaylist(list[0].id);
-        }
-      } catch (err) {
-        setPlaylistError('Failed to load playlists: ' + err.message);
-      } finally {
-        setLoadingPlaylists(false);
-      }
-    };
-
-    loadPlaylistsOnce();
-  }, [isAuthenticated, accessToken, selectedPlaylist]);
+  useEffect(() => {
+    loadPlaylists();
+  }, [loadPlaylists]);
 
   // ============================================
   // MAIN PUBLISH — Drive → YouTube

@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { CheckCircle, RotateCcw, Edit3, ExternalLink, Save, X, Zap } from "lucide-react";
 import { getDriveDirectDownload, getDriveThumbnail } from "../../lib/api";
-import ProcessVideoModal from "./ProcessVideoModal";
 import "./ReviewCard.css";
 
 export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish }) {
   const [editingId, setEditingId]   = useState(null);
   const [editNotes, setEditNotes]   = useState("");
   const [approving, setApproving]   = useState(null);
-  const [processingId, setProcessingId] = useState(null);
   const [failedPreviews, setFailedPreviews] = useState(new Set());
 
   const reviewable = stories.filter((s) => s.dashStatus === "review");
@@ -25,16 +23,6 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
   const handleReject = async (story) => {
     // Drop back into storyboard queue for fixes
     await onEdit(story.id, { dashStatus: "storyboard" });
-  };
-
-  const handleProcessComplete = async (storyId, processedVideoUrl) => {
-    try {
-      await onEdit(storyId, { videoLink: processedVideoUrl, processed: true });
-      setProcessingId(null);
-    } catch (err) {
-      console.error('Failed to save processed video:', err);
-      alert('Failed to save processed video: ' + err.message);
-    }
   };
 
   const handleSaveNotes = async (story) => {
@@ -86,13 +74,6 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                     title="Reject and send back to Storyboard"
                   >
                     <RotateCcw size={13} /> Reject
-                  </button>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => setProcessingId(story.id)}
-                    title="Process video: trim, add logo"
-                  >
-                    <Zap size={13} /> Process
                   </button>
                   <button
                     className="btn btn-success btn-sm"
@@ -270,14 +251,6 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
         </div>
       )}
 
-      {/* Process Video Modal */}
-      {processingId && (
-        <ProcessVideoModal
-          story={stories.find((s) => s.id === processingId)}
-          onClose={() => setProcessingId(null)}
-          onProcessComplete={(url) => handleProcessComplete(processingId, url)}
-        />
-      )}
     </section>
   );
 }
