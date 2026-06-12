@@ -3,10 +3,9 @@
 // Sheet-based state management with structured logging
 // ============================================
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { fetchStories, updateStory } from "../lib/api";
-import { publishService } from "../services/publishService";
 
 function storyLog(level, message, data) {
   const prefix = `[BLS-STORIES][${new Date().toISOString()}]`;
@@ -33,12 +32,20 @@ export function useStories() {
   const [error, setError]           = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const abortControllerRef = useRef(null);
 
   // ---- Fetch all stories from Sheet ----
   const loadStories = useCallback(async () => {
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    abortControllerRef.current = new AbortController();
     storyLog('info', 'Loading stories...');
     setLoading(true);
     setError(null);
+
     try {
       const data = await fetchStories();
 
@@ -48,9 +55,11 @@ export function useStories() {
 
       setStories(safeData);
     } catch (err) {
-      storyLog('error', 'Failed to load stories', err.message);
-      setError(err.message);
-      toast.error(`Failed to load stories: ${err.message}`);
+      if (err.name !== 'AbortError') {
+        storyLog('error', 'Failed to load stories', err.message);
+        setError(err.message);
+        toast.error(`Failed to load stories: ${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -58,6 +67,12 @@ export function useStories() {
 
   useEffect(() => {
     loadStories();
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [loadStories]);
 
   // ---- Update story: Sheet first, then local state ----
@@ -143,18 +158,33 @@ export function useStories() {
     return counts;
   }, [stories]);
 
-  // ---- KPIs ----
+  // ---- KPIs (single pass through stories array) ----
   const kpis = useMemo(() => {
-    const total     = stories.length;
-    const published = stories.filter((s) => s.dashStatus === "published").length;
-    const scheduled = stories.filter((s) => s.dashStatus === "scheduled").length;
-    const approved  = stories.filter((s) => s.dashStatus === "approved").length;
-    const inReview  = stories.filter((s) => s.dashStatus === "review").length;
-    const uploaded  = stories.filter((s) => s.dashStatus === "uploaded").length;
-    const pending   = stories.filter((s) => s.dashStatus === "pending").length;
-    const publishing= stories.filter((s) => s.dashStatus === "publishing").length;
-    const failed    = stories.filter((s) => s.dashStatus === "publish_failed").length;
-    return { total, published, scheduled, approved, inReview, uploaded, pending, publishing, failed };
+    const counts = {
+      total: stories.length,
+      published: 0,
+      scheduled: 0,
+      approved: 0,
+      inReview: 0,
+      uploaded: 0,
+      pending: 0,
+      publishing: 0,
+      failed: 0,
+    };
+
+    stories.forEach((s) => {
+      const status = s.dashStatus;
+      if (status === 'published') counts.published++;
+      else if (status === 'scheduled') counts.scheduled++;
+      else if (status === 'approved') counts.approved++;
+      else if (status === 'review') counts.inReview++;
+      else if (status === 'uploaded') counts.uploaded++;
+      else if (status === 'pending') counts.pending++;
+      else if (status === 'publishing') counts.publishing++;
+      else if (status === 'publish_failed') counts.failed++;
+    });
+
+    return counts;
   }, [stories]);
 
   return {

@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { CheckCircle, RotateCcw, Edit3, ExternalLink, Save, X, Image as ImageIcon } from "lucide-react";
+import { CheckCircle, RotateCcw, Edit3, ExternalLink, Save, X, Zap } from "lucide-react";
 import { getDriveDirectDownload, getDriveThumbnail } from "../../lib/api";
+import ProcessVideoModal from "./ProcessVideoModal";
 import "./ReviewCard.css";
 
 export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish }) {
   const [editingId, setEditingId]   = useState(null);
   const [editNotes, setEditNotes]   = useState("");
   const [approving, setApproving]   = useState(null);
+  const [processingId, setProcessingId] = useState(null);
+  const [failedPreviews, setFailedPreviews] = useState(new Set());
 
   const reviewable = stories.filter((s) => s.dashStatus === "review");
 
@@ -24,9 +27,24 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
     await onEdit(story.id, { dashStatus: "storyboard" });
   };
 
+  const handleProcessComplete = async (storyId, processedVideoUrl) => {
+    try {
+      await onEdit(storyId, { videoLink: processedVideoUrl, processed: true });
+      setProcessingId(null);
+    } catch (err) {
+      console.error('Failed to save processed video:', err);
+      alert('Failed to save processed video: ' + err.message);
+    }
+  };
+
   const handleSaveNotes = async (story) => {
-    await onEdit(story.id, { reviewNotes: editNotes });
-    setEditingId(null);
+    try {
+      await onEdit(story.id, { reviewNotes: editNotes });
+      setEditingId(null);
+    } catch (err) {
+      console.error('Failed to save notes:', err);
+      alert('Failed to save notes: ' + err.message);
+    }
   };
 
   return (
@@ -68,6 +86,13 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                     title="Reject and send back to Storyboard"
                   >
                     <RotateCcw size={13} /> Reject
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setProcessingId(story.id)}
+                    title="Process video: trim, add logo"
+                  >
+                    <Zap size={13} /> Process
                   </button>
                   <button
                     className="btn btn-success btn-sm"
@@ -118,28 +143,29 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                     <span className="preview-asset-label">🎬 Video</span>
                     {story.videoLink ? (
                       <div className="preview-thumb-box" style={{ padding: "0.5rem", textAlign: "center", backgroundColor: "var(--panel)" }}>
-                        <video
-                          src={getDriveDirectDownload(story.videoLink)}
-                          controls
-                          style={{ maxWidth: "100%", maxHeight: "200px", display: "block", margin: "0 auto", borderRadius: "8px" }}
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            if (e.target.nextSibling) {
-                              e.target.nextSibling.style.display = "block";
-                            }
-                          }}
-                        />
-                        <div style={{ display: "none", padding: "1rem" }}>
-                          <p style={{marginBottom: "1rem"}}>Video preview blocked - file may not be shared publicly</p>
-                          <a
-                            href={story.videoLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-primary"
-                          >
-                            <ExternalLink size={14} style={{ marginRight: "0.5rem" }}/> Open Video in Drive
-                          </a>
-                        </div>
+                        {!failedPreviews.has(`video-${story.id}`) ? (
+                          <video
+                            src={getDriveDirectDownload(story.videoLink)}
+                            controls
+                            style={{ maxWidth: "100%", maxHeight: "200px", display: "block", margin: "0 auto", borderRadius: "8px" }}
+                            onError={() => {
+                              setFailedPreviews(prev => new Set(prev).add(`video-${story.id}`));
+                            }}
+                          />
+                        ) : null}
+                        {failedPreviews.has(`video-${story.id}`) && (
+                          <div style={{ padding: "1rem" }}>
+                            <p style={{marginBottom: "1rem"}}>Video preview blocked - file may not be shared publicly</p>
+                            <a
+                              href={story.videoLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-primary"
+                            >
+                              <ExternalLink size={14} style={{ marginRight: "0.5rem" }}/> Open Video in Drive
+                            </a>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <span className="review-asset missing">🎬 Video Missing</span>
@@ -151,28 +177,29 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
                     <span className="preview-asset-label">🖼️ Thumbnail</span>
                     {story.thumbLink ? (
                       <div className="preview-thumb-box" style={{ textAlign: "center", backgroundColor: "var(--panel)", padding: "0.5rem" }}>
-                        <img 
-                          src={getDriveThumbnail(story.thumbLink)} 
-                          alt="Thumbnail preview" 
-                          style={{ maxWidth: "100%", maxHeight: "160px", display: "block", margin: "0 auto", borderRadius: "8px", objectFit: "cover" }}
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            if (e.target.nextSibling) {
-                              e.target.nextSibling.style.display = "block";
-                            }
-                          }}
-                        />
-                        <div style={{ display: "none", padding: "1rem" }}>
-                          <p style={{marginBottom: "1rem"}}>Image Preview blocked centrally</p>
-                          <a
-                            href={story.thumbLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-secondary btn-sm"
-                          >
-                            <ExternalLink size={13} style={{ marginRight: "0.5rem" }}/> Open Thumb in Drive
-                          </a>
-                        </div>
+                        {!failedPreviews.has(`thumb-${story.id}`) ? (
+                          <img
+                            src={getDriveThumbnail(story.thumbLink)}
+                            alt="Thumbnail preview"
+                            style={{ maxWidth: "100%", maxHeight: "160px", display: "block", margin: "0 auto", borderRadius: "8px", objectFit: "cover" }}
+                            onError={() => {
+                              setFailedPreviews(prev => new Set(prev).add(`thumb-${story.id}`));
+                            }}
+                          />
+                        ) : null}
+                        {failedPreviews.has(`thumb-${story.id}`) && (
+                          <div style={{ padding: "1rem" }}>
+                            <p style={{marginBottom: "1rem"}}>Image preview blocked - file may not be shared publicly</p>
+                            <a
+                              href={story.thumbLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-secondary btn-sm"
+                            >
+                              <ExternalLink size={13} style={{ marginRight: "0.5rem" }}/> Open Thumb in Drive
+                            </a>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <span className="review-asset missing">🖼️ Thumb Missing</span>
@@ -241,6 +268,15 @@ export default function ReviewPanel({ stories, onApprove, onEdit, onGoToPublish 
             🚀 Go to Publish
           </button>
         </div>
+      )}
+
+      {/* Process Video Modal */}
+      {processingId && (
+        <ProcessVideoModal
+          story={stories.find((s) => s.id === processingId)}
+          onClose={() => setProcessingId(null)}
+          onProcessComplete={(url) => handleProcessComplete(processingId, url)}
+        />
       )}
     </section>
   );

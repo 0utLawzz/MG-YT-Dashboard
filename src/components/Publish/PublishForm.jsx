@@ -19,6 +19,27 @@ import { getDriveThumbnail, getDriveDirectDownload } from '../../lib/api';
 import { ENV } from '../../lib/config/env';
 import './PublishForm.css';
 
+// Helper: Fetch with timeout
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeoutMs}ms`);
+    }
+    throw error;
+  }
+}
+
 // ============================================
 // Fetch user's YouTube playlists (albums)
 // Requires YouTube OAuth token
@@ -26,9 +47,9 @@ import './PublishForm.css';
 async function fetchYouTubePlaylists(accessToken) {
   const url =
     'https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=50';
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  }, 10000);
   if (!res.ok) throw new Error('Playlists fetch failed: ' + res.status);
   const data = await res.json();
   // Return array of { id, title }
@@ -82,56 +103,64 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
   // ============================================
   // When a story is selected, auto-fill SEO fields
   // ============================================
-  const handleSelectStory = (id) => {
+  const handleSelectStory = useCallback((id) => {
     setSelectedId(id);
-    setDone(false);
-    setPublishError('');
-    setProgress(0);
-    setProgressMsg('');
 
     const story = stories.find(s => s.id === id);
-    if (!story) return;
-
-    setSeoTitle(story.title || '');
-    setSeoDescription(story.story || story.storytext || '');
+    if (!story) {
+      setDone(false);
+      setPublishError('');
+      setProgress(0);
+      setProgressMsg('');
+      setSeoTitle('');
+      setSeoDescription('');
+      setSeoTags('');
+      setScheduleDate('');
+      setScheduleTime('');
+      return;
+    }
 
     // Combine hashtags + seoTags into a single comma-separated list
     const tags = [];
     if (story.hashtags) tags.push(...story.hashtags.split(' ').map(t => t.replace('#', '')));
     if (story.seoTags) tags.push(...story.seoTags.split(','));
-    setSeoTags(tags.map(t => t.trim()).filter(Boolean).join(', '));
+    const combinedTags = tags.map(t => t.trim()).filter(Boolean).join(', ');
 
+    setSeoTitle(story.title || '');
+    setSeoDescription(story.story || story.storytext || '');
+    setSeoTags(combinedTags);
     setScheduleDate(story.schedule ? story.schedule.split('T')[0] : '');
     setScheduleTime(story.schedule ? story.schedule.split('T')[1]?.slice(0, 5) : '');
-  };
+    setDone(false);
+    setPublishError('');
+    setProgress(0);
+    setProgressMsg('');
+  }, [stories]);
 
   // ============================================
   // Fetch YouTube Playlists when authenticated
   // ============================================
-  const loadPlaylists = useCallback(async () => {
-    if (!accessToken) return;
-    setLoadingPlaylists(true);
-    setPlaylistError('');
-    try {
-      const list = await fetchYouTubePlaylists(accessToken);
-      setPlaylists(list);
-      // If ENV has a default playlist and it exists in list, keep it selected
-      if (!selectedPlaylist && list.length > 0) {
-        setSelectedPlaylist(list[0].id);
-      }
-    } catch (err) {
-      setPlaylistError('Playlists load nahi huin: ' + err.message);
-    } finally {
-      setLoadingPlaylists(false);
-    }
-  }, [accessToken]);
-
-  // Auto-load playlists when user connects
   useEffect(() => {
-    if (isAuthenticated && accessToken) {
-      loadPlaylists();
-    }
-  }, [isAuthenticated, accessToken, loadPlaylists]);
+    if (!isAuthenticated || !accessToken) return;
+
+    const loadPlaylistsOnce = async () => {
+      setLoadingPlaylists(true);
+      setPlaylistError('');
+      try {
+        const list = await fetchYouTubePlaylists(accessToken);
+        setPlaylists(list);
+        if (!selectedPlaylist && list.length > 0) {
+          setSelectedPlaylist(list[0].id);
+        }
+      } catch (err) {
+        setPlaylistError('Failed to load playlists: ' + err.message);
+      } finally {
+        setLoadingPlaylists(false);
+      }
+    };
+
+    loadPlaylistsOnce();
+  }, [isAuthenticated, accessToken, selectedPlaylist]);
 
   // ============================================
   // MAIN PUBLISH — Drive → YouTube

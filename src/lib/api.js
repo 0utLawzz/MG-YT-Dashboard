@@ -118,8 +118,8 @@ export function getDriveThumbnail(driveUrl) {
   if (!driveUrl) return "";
   const match = driveUrl.match(/\/d\/([\w-]+)/);
   if (match) {
-    // sz=w500 limits the size, which makes it load as a proper thumbnail preview
-    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w500`;
+    // Use direct download as fallback for images — works better than thumbnail API
+    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
   }
   return driveUrl;
 }

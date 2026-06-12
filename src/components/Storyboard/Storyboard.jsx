@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { BookOpen, User, Hash, Tag, ArrowRight, CheckCircle, ChevronDown, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { BookOpen, User, Hash, Tag, ChevronDown, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { uploadToDrive, setDriveFilePermissions } from "../../services/upload/driveUpload";
 import { useAuth } from "../../context/AuthContext";
 import "./Storyboard.css";
@@ -14,6 +14,15 @@ const STATUS_COLORS = {
   published:  "badge-published",
 };
 
+// Debounce helper
+function useDebounce(callback, delay) {
+  const timeoutRef = useRef(null);
+  return useCallback((...args) => {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => callback(...args), delay);
+  }, [callback, delay]);
+}
+
 export default function Storyboard({
   story,
   stories,
@@ -25,14 +34,16 @@ export default function Storyboard({
   const [notes, setNotes] = useState(story?.reviewNotes || "");
   const [videoLink, setVideoLink] = useState(story?.videoLink || "");
   const [thumbLink, setThumbLink] = useState(story?.thumbLink || "");
-  
+
   const [saving, setSaving] = useState(false);
   const [savedAssets, setSavedAssets] = useState(false);
   const [uploading, setUploading] = useState({ video: false, thumb: false });
-  const [uploadProgress, setUploadProgress] = useState(0);
-  
+  const [uploadProgress, setUploadProgress] = useState({ video: 0, thumb: 0 });
+  const [uploadError, setUploadError] = useState(null);
+
   const videoInputRef = useRef(null);
   const thumbInputRef = useRef(null);
+  const uploadAbortRef = useRef({});
 
   // Sync state when story changes
   useEffect(() => {
@@ -41,25 +52,32 @@ export default function Storyboard({
       setVideoLink(story.videoLink || "");
       setThumbLink(story.thumbLink || "");
       setSavedAssets(false);
+      setUploadError(null);
     }
   }, [story]);
 
   // Only show stories that have been pushed to storyboard
   const storyboardStories = stories.filter(s => s.dashStatus === "storyboard");
 
-  const handleSelect = (id) => {
+  const handleSelect = useCallback((id) => {
     const found = storyboardStories.find((s) => s.id === id);
     if (found) {
       onSelectStory(found);
     }
-  };
+  }, [storyboardStories, onSelectStory]);
 
-  const handleSaveNotes = async () => {
-    if (!story) return;
+  const handleSaveNotes = useDebounce(async (notesText, storyId) => {
+    if (!storyId) return;
     setSaving(true);
-    await onEdit(story.id, { reviewNotes: notes });
-    setSaving(false);
-  };
+    try {
+      await onEdit(storyId, { reviewNotes: notesText });
+    } catch (err) {
+      console.error('Failed to save notes:', err);
+      alert('Failed to save notes: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  }, 300);
 
   const isValidLink = (link) => {
     if (!link) return false;
@@ -73,18 +91,25 @@ export default function Storyboard({
       return;
     }
 
+    if (uploading[type]) {
+      alert('Upload already in progress');
+      return;
+    }
+
+    setUploadError(null);
     setUploading(prev => ({ ...prev, [type]: true }));
-    setUploadProgress(0);
+    setUploadProgress(prev => ({ ...prev, [type]: 0 }));
 
     try {
       const result = await uploadToDrive(file, accessToken, (pct) => {
-        setUploadProgress(pct);
+        setUploadProgress(prev => ({ ...prev, [type]: pct }));
       });
 
-      // Set permissions to "Anyone with link"
-      await setDriveFilePermissions(result.fileId, accessToken);
+      const permResult = await setDriveFilePermissions(result.fileId, accessToken);
+      if (!permResult) {
+        throw new Error('Failed to set file permissions - file may not be accessible');
+      }
 
-      // Update the link
       if (type === 'video') {
         setVideoLink(result.shareLink);
       } else {
@@ -94,10 +119,11 @@ export default function Storyboard({
       alert(`${type === 'video' ? 'Video' : 'Thumbnail'} uploaded successfully!`);
     } catch (err) {
       console.error('[Storyboard] Upload failed:', err);
+      setUploadError(`${type} upload failed: ${err.message}`);
       alert(`Upload failed: ${err.message}`);
     } finally {
       setUploading(prev => ({ ...prev, [type]: false }));
-      setUploadProgress(0);
+      setUploadProgress(prev => ({ ...prev, [type]: 0 }));
     }
   };
 
@@ -236,18 +262,15 @@ export default function Storyboard({
              <textarea
                className="input sb-textarea"
                value={notes}
-               onChange={(e) => setNotes(e.target.value)}
+               onChange={(e) => {
+                 setNotes(e.target.value);
+                 if (story) {
+                   handleSaveNotes(e.target.value, story.id);
+                 }
+               }}
                placeholder="Director / Voice-over notes..."
                rows={3}
              />
-             <button
-               className="btn btn-sm btn-secondary"
-               onClick={handleSaveNotes}
-               disabled={saving}
-               style={{ marginTop: "0.5rem" }}
-             >
-               {saving ? "Saving…" : "💾 Save Notes"}
-             </button>
           </div>
 
           {/* ASSET UPLOADING EMBED */}
@@ -287,7 +310,7 @@ export default function Storyboard({
                 </div>
                 {uploading.video && (
                   <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--accent3)' }}>
-                    Uploading: {uploadProgress}%
+                    Uploading: {uploadProgress.video}%
                   </div>
                 )}
             </div>
@@ -324,7 +347,7 @@ export default function Storyboard({
                 </div>
                 {uploading.thumb && (
                   <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--accent3)' }}>
-                    Uploading: {uploadProgress}%
+                    Uploading: {uploadProgress.thumb}%
                   </div>
                 )}
             </div>
