@@ -12,6 +12,7 @@ export default function BarCharts({ stories }) {
   const published = safeStories.filter(s => s.dashStatus === 'published');
   
   const colors = useMemo(() => {
+    void theme;
     const style = getComputedStyle(document.body);
     return {
       accent: style.getPropertyValue('--accent').trim() || '#FF1744',

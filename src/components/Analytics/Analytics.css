@@ -1,4 +1,4 @@
-/* Analytics.css — Sheet-based version */
+/* Analytics.css — Enhanced with more KPIs, asset coverage, timeline */
 
 .analytics-section {
   padding: 1.25rem;
@@ -7,7 +7,7 @@
   gap: 1rem;
 }
 
-/* KPI Grid */
+/* KPI Grid — 4 per row on desktop, 2 on tablet, 1 on mobile */
 .an-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -18,7 +18,13 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.an-kpi > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .an-kpi-val {
@@ -26,6 +32,7 @@
   font-size: 1.8rem;
   font-weight: 900;
   line-height: 1;
+  color: var(--text);
 }
 
 .an-kpi-lbl {
@@ -33,6 +40,7 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--dim);
+  font-weight: 600;
 }
 
 /* Charts Grid */
@@ -49,18 +57,72 @@
 }
 
 .chart-title {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--dim);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  font-weight: 700;
+  opacity: 0.8;
 }
 
 .an-chart-container {
   height: 220px;
   position: relative;
+}
+
+/* ============================================
+   Asset Coverage Panel
+   ============================================ */
+.an-asset-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.an-asset-stat {
+  display: grid;
+  grid-template-columns: 16px 1fr auto auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.an-asset-label {
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.an-asset-val {
+  font-size: 0.75rem;
+  color: var(--dim);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.an-asset-bar-bg {
+  height: 6px;
+  background: rgba(128,128,128,0.15);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.an-asset-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.an-asset-pct {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 32px;
+  text-align: right;
 }
 
 /* Table */
@@ -86,13 +148,16 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--dim);
-  border-bottom: 2px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  border-bottom: 2px solid rgba(128,128,128,0.2);
+  font-weight: 700;
+  opacity: 0.75;
 }
 
 .an-table td {
   padding: 0.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(128,128,128,0.08);
+  color: var(--text);
 }
 
 .an-title {
@@ -116,7 +181,8 @@
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
   background: var(--bg);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(128,128,128,0.1);
+  border-radius: 4px;
 }
 
 .an-recent-id {
@@ -128,11 +194,18 @@
   font-weight: 600;
   font-size: 0.85rem;
   flex: 1;
+  color: var(--text);
 }
 
 .an-recent-date {
   font-size: 0.7rem;
   color: var(--dim);
+}
+
+@media (max-width: 1024px) {
+  .an-kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
@@ -142,4 +215,8 @@
   .an-charts-grid {
     grid-template-columns: 1fr;
   }
+  .an-asset-stat {
+    grid-template-columns: 16px 1fr auto;
+  }
+  .an-asset-bar-bg { display: none; }
 }

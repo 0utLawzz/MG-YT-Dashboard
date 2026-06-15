@@ -1,4 +1,4 @@
-import { Search, Filter, Copy, FileText } from 'lucide-react';
+import { Search, Filter, Copy } from 'lucide-react';
 import './StoryTable.css';
 
 const STATUS_LABELS = {
@@ -10,7 +10,7 @@ const STATUS_LABELS = {
 export default function StoryTable({
   stories, searchQuery, onSearchChange,
   filterStatus, onFilterChange, statuses,
-  onOpenStoryboard, onEdit, onRemove
+  onOpenStoryboard
 }) {
   // Guard: stories might be undefined during loading
   const safeStories = Array.isArray(stories) ? stories : [];

@@ -77,7 +77,7 @@
 .review-detail-text {
   font-size: 0.82rem;
   line-height: 1.7;
-  color: var(--dim);
+  color: var(--text);
   white-space: pre-wrap;
   max-height: 120px;
   overflow-y: auto;
@@ -102,12 +102,13 @@
 .review-tag-text { font-size: 0.78rem; color: var(--accent5); line-height: 1.5; }
 
 /* ============================================
-   MINI PREVIEW — Video + Thumbnail
+   PREVIEW — Video + Thumbnail
    ============================================ */
 .review-preview-section {
   background: var(--bg);
   border: 2px solid rgba(255,255,255,0.08);
   padding: 0.75rem;
+  border-radius: 4px;
 }
 
 .review-assets {
@@ -118,18 +119,19 @@
 }
 
 .review-asset.missing {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--accent);
-  padding: 0.3rem 0.6rem;
-  border: 2px solid var(--accent);
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--accent);
   background: rgba(255,23,68,0.08);
   display: inline-block;
+  border-radius: 3px;
 }
 
 .preview-asset-col {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.4rem;
 }
 
 .preview-asset-label {
@@ -143,10 +145,11 @@
 .preview-thumb-box {
   width: 100%;
   aspect-ratio: 16/9;
-  background: #000;
-  border: 2px solid rgba(255,255,255,0.15);
+  background: var(--bg2, #111);
+  border: 2px solid rgba(255,255,255,0.12);
   overflow: hidden;
   position: relative;
+  border-radius: 6px;
 }
 
 /* Video iframe */
@@ -154,6 +157,7 @@
   width: 100%;
   height: 100%;
   border: none;
+  display: block;
 }
 
 /* Thumbnail image */
@@ -164,7 +168,7 @@
   display: block;
 }
 
-/* Fallback when image fails */
+/* Fallback / placeholder when image fails or no asset */
 .preview-thumb-fallback {
   width: 100%;
   height: 100%;
@@ -172,11 +176,26 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   color: var(--dimmer);
-  font-size: 0.75rem;
-  background: var(--bg2);
+  font-size: 0.72rem;
+  background: var(--bg2, #111);
+  text-align: center;
+  padding: 0.5rem;
 }
+
+/* Small link below preview */
+.preview-open-link {
+  font-size: 0.7rem;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+.preview-open-link:hover { opacity: 1; color: var(--accent2); }
 
 /* Notes */
 .review-notes-section {
@@ -194,7 +213,7 @@
   justify-content: space-between;
 }
 
-.review-notes-text { font-size: 0.82rem; color: var(--dim); line-height: 1.6; }
+.review-notes-text { font-size: 0.82rem; color: var(--text); line-height: 1.6; }
 
 .review-textarea { font-family: var(--font-body); resize: vertical; }
 

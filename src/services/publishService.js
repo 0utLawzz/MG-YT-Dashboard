@@ -71,7 +71,7 @@ async function checkDriveFileAccess(fileId, accessToken) {
   } catch (err) {
     // Network error wagera
     if (!err.message.includes('Drive file')) {
-      throw new Error('Drive file check failed: ' + err.message);
+      throw new Error('Drive file check failed: ' + err.message, { cause: err });
     }
     throw err;
   }

@@ -10,7 +10,8 @@
 // 5. Auto-refresh 5 min before expiry
 // ============================================
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { ENV } from '../lib/config/env';
 
 // ─── Client ID ────────────────────────────────────────────────────────────────
@@ -44,7 +45,9 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('bls_access_token');
         localStorage.removeItem('bls_token_expiry');
       }
-    } catch (_) {}
+    } catch {
+      /* ignore */
+    }
     return null;
   });
 
@@ -52,7 +55,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const expiry = localStorage.getItem('bls_token_expiry');
       return expiry ? Number(expiry) : null;
-    } catch (_) { return null; }
+    } catch {
+      return null;
+    }
   });
 
   const [isLoading, setIsLoading]       = useState(false);
@@ -93,7 +98,9 @@ export const AuthProvider = ({ children }) => {
           try {
             localStorage.setItem('bls_access_token', response.access_token);
             localStorage.setItem('bls_token_expiry', String(expiry));
-          } catch (_) { /* Storage error, continue anyway */ }
+          } catch {
+            /* Storage error, continue anyway */
+          }
 
           setAccessToken(response.access_token);
           setExpiryTime(expiry);
@@ -156,7 +163,9 @@ export const AuthProvider = ({ children }) => {
     if (timeUntilExpiry < 0) {
       // Token already expired
       console.log('[AuthContext] ⚠️  Token expired, will refresh on next API call');
+      /* eslint-disable react-hooks/set-state-in-effect */
       setAccessToken(null);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
 
@@ -189,7 +198,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('bls_token_expiry');
       sessionStorage.removeItem('gapi_access_token');
       sessionStorage.removeItem('gapi_token_expiry');
-    } catch (_) {}
+    } catch {
+      /* ignore */
+    }
 
     setAccessToken(null);
     setExpiryTime(null);

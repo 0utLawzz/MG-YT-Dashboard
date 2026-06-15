@@ -23,8 +23,8 @@ export default defineConfig({
         rewrite: (path) =>
           path.replace(/^\/drive-proxy/, ''),
         secure: true,
-        configure: (proxy, options) => {
-          proxy.on('proxyRes', (proxyRes, req, res) => {
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
             // Forward Location header for resumable uploads
             const location = proxyRes.headers['location'];
             if (location) {

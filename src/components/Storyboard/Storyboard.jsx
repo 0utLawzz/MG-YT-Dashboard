@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { BookOpen, User, Hash, Tag, ChevronDown, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { BookOpen, User, Hash, Tag, ChevronDown, ExternalLink, Upload, Loader2, FolderOpen } from "lucide-react";
 import { uploadToDrive, setDriveFilePermissions } from "../../services/upload/driveUpload";
 import { useAuth } from "../../context/AuthContext";
+import { ENV } from "../../lib/config/env";
 import "./Storyboard.css";
 
 const STATUS_COLORS = {
@@ -23,6 +24,57 @@ function useDebounce(callback, delay) {
   }, [callback, delay]);
 }
 
+/**
+ * Opens Google Drive Picker and resolves with a share URL string,
+ * or null if the user cancels.
+ */
+function openDrivePicker({ accessToken, apiKey, mimeTypes = [] }) {
+  return new Promise((resolve) => {
+    if (!window.gapi?.load) {
+      alert("Google API not loaded yet. Please wait a moment and try again.");
+      resolve(null);
+      return;
+    }
+
+    window.gapi.load("picker", () => {
+      const google = window.google;
+      if (!google?.picker) {
+        alert("Google Picker API failed to load.");
+        resolve(null);
+        return;
+      }
+
+      const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+        .setIncludeFolders(false)
+        .setSelectFolderEnabled(false);
+
+      if (mimeTypes.length > 0) {
+        view.setMimeTypes(mimeTypes.join(","));
+      }
+
+      const picker = new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(accessToken)
+        .setDeveloperKey(apiKey || "")
+        .setCallback((data) => {
+          if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+            const doc = data[google.picker.Response.DOCUMENTS][0];
+            const fileId = doc[google.picker.Document.ID];
+            const shareUrl = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+            resolve(shareUrl);
+          } else if (
+            data[google.picker.Response.ACTION] === google.picker.Action.CANCEL
+          ) {
+            resolve(null);
+          }
+        })
+        .build();
+
+      picker.setVisible(true);
+    });
+  });
+}
+
 export default function Storyboard({
   story,
   stories,
@@ -40,19 +92,21 @@ export default function Storyboard({
   const [uploading, setUploading] = useState({ video: false, thumb: false });
   const [uploadProgress, setUploadProgress] = useState({ video: 0, thumb: 0 });
   const [uploadError, setUploadError] = useState(null);
+  const [pickingDrive, setPickingDrive] = useState({ video: false, thumb: false });
 
   const videoInputRef = useRef(null);
   const thumbInputRef = useRef(null);
-  const uploadAbortRef = useRef({});
 
   // Sync state when story changes
   useEffect(() => {
     if (story) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       setNotes(story.reviewNotes || "");
       setVideoLink(story.videoLink || "");
       setThumbLink(story.thumbLink || "");
       setSavedAssets(false);
       setUploadError(null);
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [story]);
 
@@ -124,6 +178,36 @@ export default function Storyboard({
     } finally {
       setUploading(prev => ({ ...prev, [type]: false }));
       setUploadProgress(prev => ({ ...prev, [type]: 0 }));
+    }
+  };
+
+  const handlePickFromDrive = async (type) => {
+    if (!accessToken) {
+      alert('Please sign in with Google first to use the Drive Picker.');
+      return;
+    }
+
+    setPickingDrive(prev => ({ ...prev, [type]: true }));
+    try {
+      const mimeTypes = type === 'video'
+        ? ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/*']
+        : ['image/jpeg', 'image/png', 'image/webp', 'image/*'];
+
+      const apiKey = ENV.GOOGLE_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY || '';
+      const shareUrl = await openDrivePicker({ accessToken, apiKey, mimeTypes });
+
+      if (shareUrl) {
+        if (type === 'video') {
+          setVideoLink(shareUrl);
+        } else {
+          setThumbLink(shareUrl);
+        }
+      }
+    } catch (err) {
+      console.error('[Storyboard] Drive picker error:', err);
+      alert('Drive picker failed: ' + err.message);
+    } finally {
+      setPickingDrive(prev => ({ ...prev, [type]: false }));
     }
   };
 
@@ -276,11 +360,14 @@ export default function Storyboard({
           {/* ASSET UPLOADING EMBED */}
           <div className="sb-notes panel" style={{ border: "1px solid var(--accent2)" }}>
             <h4 className="sb-card-title" style={{ color: "var(--accent2)" }}>🎬 Attach Drive Assets</h4>
-            <p className="section-desc" style={{marginBottom: "1rem"}}>Upload to Google Drive, share Anyone with link, paste URLs here. Saving BOTH automatically routes story to Review Tab.</p>
+            <p className="section-desc" style={{marginBottom: "1rem"}}>
+              Paste Google Drive URLs, pick directly from Drive, or upload a local file. Saving BOTH automatically routes story to Review Tab.
+            </p>
 
+            {/* Video Link */}
             <div className="form-group">
                 <label className="form-label" htmlFor="video-link">Video Drive Link</label>
-                <div className="link-input-row" style={{display: "flex", gap: "0.5rem"}}>
+                <div className="link-input-row" style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
                   <input
                     className="input"
                     id="video-link"
@@ -289,6 +376,18 @@ export default function Storyboard({
                     placeholder="https://drive.google.com/file/d/.../view"
                     disabled={saving || uploading.video}
                   />
+                  {/* Pick from Drive */}
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => handlePickFromDrive('video')}
+                    disabled={pickingDrive.video || uploading.video || saving}
+                    title="Pick video from Google Drive"
+                    style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                  >
+                    {pickingDrive.video ? <Loader2 size={14} className="spin" /> : <FolderOpen size={14} />}
+                    Drive
+                  </button>
+                  {/* Local Upload */}
                   <input
                     type="file"
                     accept="video/*"
@@ -300,7 +399,7 @@ export default function Storyboard({
                     className="btn btn-sm btn-secondary"
                     onClick={() => videoInputRef.current?.click()}
                     disabled={uploading.video || saving}
-                    title="Upload to Drive"
+                    title="Upload local video to Drive"
                   >
                     {uploading.video ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
                   </button>
@@ -315,9 +414,10 @@ export default function Storyboard({
                 )}
             </div>
 
+            {/* Thumbnail Link */}
             <div className="form-group" style={{marginTop: "1rem"}}>
                 <label className="form-label" htmlFor="thumb-link">Thumbnail Drive Link (1280x720)</label>
-                <div className="link-input-row" style={{display: "flex", gap: "0.5rem"}}>
+                <div className="link-input-row" style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
                   <input
                     className="input"
                     id="thumb-link"
@@ -326,6 +426,18 @@ export default function Storyboard({
                     placeholder="https://drive.google.com/file/d/.../view"
                     disabled={saving || uploading.thumb}
                   />
+                  {/* Pick from Drive */}
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => handlePickFromDrive('thumb')}
+                    disabled={pickingDrive.thumb || uploading.thumb || saving}
+                    title="Pick thumbnail from Google Drive"
+                    style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                  >
+                    {pickingDrive.thumb ? <Loader2 size={14} className="spin" /> : <FolderOpen size={14} />}
+                    Drive
+                  </button>
+                  {/* Local Upload */}
                   <input
                     type="file"
                     accept="image/*"
@@ -337,7 +449,7 @@ export default function Storyboard({
                     className="btn btn-sm btn-secondary"
                     onClick={() => thumbInputRef.current?.click()}
                     disabled={uploading.thumb || saving}
-                    title="Upload to Drive"
+                    title="Upload local image to Drive"
                   >
                     {uploading.thumb ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
                   </button>
@@ -351,6 +463,12 @@ export default function Storyboard({
                   </div>
                 )}
             </div>
+
+            {uploadError && (
+              <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: 'rgba(255,23,68,0.1)', border: '1px solid var(--accent)', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--accent)' }}>
+                ⚠️ {uploadError}
+              </div>
+            )}
 
             <div style={{marginTop: "1rem"}}>
               <button

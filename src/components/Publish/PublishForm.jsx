@@ -34,7 +34,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      throw new Error(`Request timeout after ${timeoutMs}ms`);
+      throw new Error(`Request timeout after ${timeoutMs}ms`, { cause: error });
     }
     throw error;
   }
@@ -59,7 +59,7 @@ async function fetchYouTubePlaylists(accessToken) {
   }));
 }
 
-export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) {
+export default function PublishForm({ stories, onSchedule, onPublish }) {
   const { signIn, signOut, isAuthenticated, isLoading: authLoading, accessToken } = useAuth();
 
   // --- Story selection ---
@@ -156,6 +156,7 @@ export default function PublishForm({ stories, onSchedule, onPublish, onEdit }) 
   }, [isAuthenticated, accessToken]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPlaylists();
   }, [loadPlaylists]);
 

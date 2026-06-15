@@ -1,48 +1,131 @@
-# 🕵️ Developer & Installation Guide
+# 📖 User Guide — MG-YT-Dashboard
 
-This guide is for when you want to set up this project from scratch or move it to a new computer.
+## Overview
 
-## 1. Prerequisites (What you need installed)
-*   **Node.js**: The engine that runs this app. [Download here](https://nodejs.org/).
-*   **Git**: For saving your progress and pushing to GitHub.
+The dashboard follows a linear production pipeline:
 
-## 2. Installation Steps
-1.  **Extract the files** into a folder (e.g., `E:\Raplit`).
-2.  **Install dependencies**: Open your terminal in that folder and run:
-    ```powershell
-    npm install
-    ```
-    *This downloads all the building blocks (like Chart.js and Supabase).*
-
-## 3. The Environment File (`.env`)
-The app needs "Secret Keys" to talk to your database. These are kept in a file named `.env` in the main folder. 
-**NEVER share this file publicly!**
-
-It should look like this:
-```text
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_GOOGLE_API_KEY=your-google-api-key
-VITE_GOOGLE_CLIENT_ID=your-client-id
 ```
-
-## 4. Folder Structure Explained
-*   `/src/components`: The visual pieces of the app (Header, Cards, Table).
-*   `/src/lib`: The library connections (Supabase, Google).
-*   `/src/hooks`: The "logic" that manages the data.
-*   `/src/styles`: The "Makeup" of the app (CSS).
-
-## 5. Deployment Checklist
-Before you put this on a website:
-1.  Verify the `stories` table is created in Supabase.
-2.  Verify the `story-assets` bucket is created in Supabase Storage.
-3.  Ensure your `.env` variables are entered into your hosting provider (like Vercel).
-
-## 6. Common Troubleshooting
-*   **Icons not showing**: Check `lucide-react` version in `package.json`.
-*   **Network Error**: Check if the Supabase URL in `.env` is correct.
-*   **Blank page on build**: Make sure the `dist` folder is actually being served correctly.
+Stories → Storyboard → Review → Publish → Analytics
+```
 
 ---
 
-*Need help? Ask your friendly neighborhood AI coder!*
+## 🗂️ Stories Tab
+
+- View all stories loaded from Google Sheets
+- Search by title, category, or ID
+- Filter by pipeline status
+- Click **"Push to Storyboard"** to move a story into production
+
+---
+
+## 🎬 Storyboard Tab
+
+### Selecting a Story
+
+Use the dropdown to pick a story assigned to storyboard status.
+
+### Reading Content
+
+View the story text, character brief, hashtags, and SEO tags.
+
+### Editor Notes
+
+Add director / voice-over notes — auto-saved with debounce.
+
+### Attaching Assets (Video + Thumbnail)
+
+There are **3 ways** to attach assets:
+
+| Method | How |
+|---|---|
+| **Paste URL** | Copy a Google Drive share link and paste into the input |
+| **Pick from Drive** | Click the 📂 **Drive** button to open the native Google Drive Picker. Browse and select a file directly. |
+| **Upload local file** | Click the ⬆️ **Upload** button to select a local file. It uploads to your Google Drive folder and generates a share link. |
+
+> **Important:** The file must be shared "Anyone with link" for previews to work in the Review tab.
+
+Clicking **💾 Save Assets** saves the links to the Google Sheet. If **both** video and thumbnail are provided, the story is **automatically moved to the Review queue**.
+
+---
+
+## ✅ Review Tab
+
+Stories that have both assets attached appear here.
+
+### Previewing Assets
+
+- **Video** plays directly in an embedded iframe (Google Drive stream)
+- **Thumbnail** displays as an image
+- If a file is blocked (not shared publicly), a fallback shows with a "Open in Drive" link
+
+### Actions
+
+| Button | Action |
+|---|---|
+| **✅ Approve** | Moves story to "Approved" — ready for publishing |
+| **↩ Reject** | Sends story back to Storyboard for fixes |
+| **📝 Edit Notes** | Add or edit review notes for the story |
+
+---
+
+## 🚀 Publish Tab
+
+Approved stories appear here for YouTube publishing.
+
+- **Schedule**: Set a date/time for the video
+- **Publish Now**: Starts the Drive → YouTube upload process
+- Progress is shown in a 7-stage progress bar
+
+---
+
+## 📈 Analytics Tab
+
+Real-time pipeline overview:
+
+| Section | What it Shows |
+|---|---|
+| **8 KPI Cards** | Total, Published, In Progress, Completion Rate, In Review, Approved, Scheduled, Storyboard |
+| **Pipeline Bar Chart** | Stories by status |
+| **Category Donut** | Stories per category |
+| **Asset Coverage** | % of stories with video / thumbnail / both |
+| **Activity Timeline** | Stories updated per week (line chart) |
+| **All Stories Table** | Full list with asset status |
+| **Recently Updated** | Last 5 stories modified |
+
+---
+
+## ⚙️ Settings Drawer
+
+Click the **⚙️ Settings** icon (top right) to configure:
+
+- Google Sheet / Apps Script URL
+- YouTube Channel ID
+- Drive Folder ID
+- Theme selection (Dark, Light, Glass, Midnight, Neon)
+
+All settings are saved to `localStorage` and override `.env` values — no redeploy needed.
+
+---
+
+## 🔑 Authentication
+
+Click **"Sign in with Google"** on the login screen.
+
+The OAuth flow grants:
+- Google Drive access (for file upload and picker)
+- YouTube access (for video publishing)
+- No Sheets access needed client-side (handled by Apps Script)
+
+---
+
+## 🧑‍💻 NPM Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` | Local dev server (`http://localhost:5173`) |
+| `npm run build` | Build production bundle to `/dist` |
+| `npm run preview` | Preview the `/dist` bundle locally |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run Vitest test suite |
+| `npm run deploy` | `npm run build && vercel --prod` |

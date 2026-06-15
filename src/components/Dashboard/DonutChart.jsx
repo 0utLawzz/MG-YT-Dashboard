@@ -14,6 +14,7 @@ export default function DonutChart({ counts }) {
   const values = Object.values(safeCounts);
 
   const colorMap = useMemo(() => {
+    void theme;
     const style = getComputedStyle(document.body);
     return {
       pending: style.getPropertyValue('--dim').trim() || 'rgba(255,255,255,0.3)',
