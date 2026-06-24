@@ -13,6 +13,7 @@ const Storyboard = lazy(() => import("./components/Storyboard/Storyboard"));
 const ReviewPanel = lazy(() => import("./components/Review/ReviewCard"));
 const PublishForm = lazy(() => import("./components/Publish/PublishForm"));
 const Analytics = lazy(() => import("./components/Analytics/Analytics"));
+const Accounts = lazy(() => import("./components/Accounts/Accounts"));
 import SettingsDrawer from "./components/SettingsDrawer";
 import { useStories } from "./hooks/useStories";
 import { useAuth } from "./hooks/useAuth";
@@ -150,6 +151,10 @@ export default function App() {
 
             {activeTab === "analytics" && (
               <Analytics stories={stories} pipelineCounts={pipelineCounts} />
+            )}
+
+            {activeTab === "accounts" && (
+              <Accounts />
             )}
 
           </Suspense>

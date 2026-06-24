@@ -46,6 +46,42 @@ export async function fetchStories() {
   return data;
 }
 
+export async function fetchAccounts() {
+  const url = `${ENV.SCRIPT_URL}?action=getAccounts`;
+  dataLog('info', 'Fetching accounts...', { url: url.substring(0, 80) });
+
+  const data = await apiClient.get(url);
+
+  if (data?.error) {
+    dataLog('error', 'Server returned error', data.error);
+    throw new Error(data.error);
+  }
+
+  if (!Array.isArray(data)) {
+    dataLog('warn', 'fetchAccounts: response is not an array, wrapping', {
+      type: typeof data,
+      value: data,
+    });
+    if (data?.data && Array.isArray(data.data)) return data.data;
+    if (data?.rows && Array.isArray(data.rows)) return data.rows;
+    if (data?.accounts && Array.isArray(data.accounts)) return data.accounts;
+    if (!data) return [];
+    return [];
+  }
+
+  dataLog('info', `Fetched ${data.length} accounts`);
+  return data;
+}
+
+export async function updateAccount(sheetRow, updates) {
+  const updatesParam = encodeURIComponent(JSON.stringify(updates));
+  const url = `${ENV.SCRIPT_URL}?action=updateAccount&sheetRow=${sheetRow}&updates=${updatesParam}`;
+  dataLog('info', 'Updating account', { sheetRow, updates });
+  const data = await apiClient.get(url);
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
 export async function fetchAnalytics() {
   const url = `${ENV.SCRIPT_URL}?action=getAnalytics`;
   dataLog('info', 'Fetching analytics...');

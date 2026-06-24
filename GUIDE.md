@@ -95,6 +95,47 @@ Real-time pipeline overview:
 
 ---
 
+## 🗄️ Accounts Tab (CredVault)
+
+The **Accounts** tab displays credentials stored in the `Cred` sheet of your Google Spreadsheet.
+
+### Reading Accounts
+- All accounts are loaded automatically when you open the tab
+- Cards show the **email**, **masked password**, **tag** (status), and **credit balance**
+
+### Filtering
+Click any filter button to narrow down accounts:
+
+| Filter | Shows |
+|---|---|
+| **ALL** | Every account |
+| **NEW** | Tag = `new` |
+| **VPENDING** | Tag = `v-pending` |
+| **USED** | Tag = `used` |
+
+### One-Click Copy
+- Click the 📋 icon next to the **email** to copy the account ID
+- Click the 📋 icon next to the **password** to copy the password
+- Click the 👁️ icon to reveal the password on that card
+
+### Inline Edit (Credit & Tag)
+1. Click the **✏️ pencil icon** in the top-right of any card
+2. The tag becomes a **dropdown** — choose from `new`, `verified`, `v-pending`, `used`
+3. The credit becomes a **number input** — type the new value
+4. Click **✓** (green check) to save — changes are written to the Google Sheet instantly
+5. Click **✗** (red X) to cancel without saving
+
+> **Note:** Only `Credit` and `tags` can be edited from the dashboard. Email and password are read-only.
+
+### Apps Script Requirements
+Your `Code.gs` must expose two actions for this tab to work:
+- `getAccounts` — reads the `Cred` sheet and returns an array
+- `updateAccount` — updates the `tags` and/or `Credit` for a given row
+
+See [PRODUCTION.md](./PRODUCTION.md) for the exact code snippets to add.
+
+---
+
 ## ⚙️ Settings Drawer
 
 Click the **⚙️ Settings** icon (top right) to configure:

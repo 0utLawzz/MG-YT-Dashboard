@@ -18,6 +18,7 @@
 | **Analytics Page** | Pipeline status, category breakdown, asset coverage %, activity timeline |
 | **Review Tab Previews** | Embedded Drive video (iframe) + thumbnail preview with fallback |
 | **Settings Drawer** | All credentials configurable at runtime — no redeploy required |
+| **Accounts / CredVault** | View credentials from "Cred" sheet — one-click copy for email & password, inline edit for Credit & Tag |
 | **Vercel Deployment** | SPA routing and asset caching via `vercel.json` |
 
 ---
@@ -45,6 +46,7 @@
 MG-YT-Dashboard/
 ├── src/
 │   ├── components/
+│   │   ├── Accounts/       # CredVault — view/edit credentials from "Cred" sheet
 │   │   ├── Analytics/      # Analytics.jsx — 8 KPIs, charts, timeline, asset coverage
 │   │   ├── Dashboard/      # KPI cards, bar chart, donut chart, pipeline view
 │   │   ├── Review/         # ReviewCard.jsx — Drive iframe preview for video & thumbnail
@@ -55,9 +57,9 @@ MG-YT-Dashboard/
 │   │   ├── Tabs.jsx
 │   │   └── SettingsDrawer.jsx
 │   ├── context/            # AuthContext.jsx, ThemeContext.jsx
-│   ├── hooks/              # useAuth.js, useStories.js
+│   ├── hooks/              # useAuth.js, useStories.js, useAccounts.js
 │   ├── lib/
-│   │   ├── api.js          # fetchStories, updateStory, Drive link helpers
+│   │   ├── api.js          # fetchStories, fetchAccounts, updateStory, updateAccount
 │   │   ├── api/client.js   # Retry-able fetch with GAS redirect handling
 │   │   └── config/env.js   # All ENV vars — localStorage first, then .env
 │   ├── services/
@@ -66,7 +68,7 @@ MG-YT-Dashboard/
 │   └── styles/             # globals.css, theme CSS files
 ├── .env.example            # Full environment template (all 6 variables)
 ├── vercel.json             # SPA routing + cache headers
-├── package.json            # v1.1.0 — includes deploy script
+├── package.json            # v1.2.0 — includes deploy script
 └── index.html              # Loads Google GSI + GAPI scripts
 ```
 
@@ -78,7 +80,8 @@ MG-YT-Dashboard/
 graph TD
     Browser[React SPA] -->|Google OAuth2| Auth[Google Identity Services]
     Browser -->|REST-like calls| GAS[Google Apps Script]
-    GAS -->|Read/Write| Sheets[(Google Sheets Database)]
+    GAS -->|Read/Write Sheet1| Sheets[(Google Sheets — Sheet1)]
+    GAS -->|Read/Write Cred| Creds[(Google Sheets — Cred Sheet)]
     Browser -->|Picker API| DrivePicker[Google Drive Picker]
     Browser -->|File upload/download| Drive[Google Drive API]
     Browser -->|Resumable upload| YouTube[YouTube Data API v3]
@@ -94,6 +97,27 @@ pending → storyboard → review → approved → publishing → published
                                                         ↘ scheduled
                                               publish_failed (retryable)
 ```
+
+---
+
+## 🗄️ Accounts / CredVault Tab
+
+The **Accounts** tab reads from the `Cred` sheet in your Google Spreadsheet. It requires these columns in order:
+
+| Column | Key | Description |
+|---|---|---|
+| A | `username` | Email / Account ID |
+| B | `password` | Password (masked by default) |
+| C | `tags` | Status tag: `new`, `verified`, `v-pending`, `used` |
+| D | `Credit` | Credit score / balance (number) |
+
+**Features:**
+- One-click copy for email and password
+- Toggle password visibility per card
+- Inline edit for **Credit** and **Tag** — click the ✏️ pencil icon on any card
+- Filter bar: ALL / NEW / VPENDING / USED
+
+**Apps Script action required:** Add `getAccounts` and `updateAccount` handlers to your `Code.gs`. See [GUIDE.md](./GUIDE.md) for the full snippet.
 
 ---
 
@@ -113,6 +137,8 @@ Paste `Code.gs` into Google Sheets → Apps Script → Deploy as Web App. Set th
 ---
 
 ## 🚢 Deployment (Vercel)
+
+See [PRODUCTION.md](./PRODUCTION.md) for the full step-by-step production deployment guide.
 
 ### Option 1 — CLI (one command)
 ```bash
@@ -149,17 +175,7 @@ Go to **Vercel Dashboard → Project → Settings → Environment Variables** an
 - Apps Script executes server-side as the sheet owner — keeping Sheets credentials off the client.
 - The API key should be restricted in Google Cloud Console to only the required APIs and your domain.
 - Never commit your real `.env` file — it's in `.gitignore`.
-
----
-
-## 🧹 File Cleanup Notes
-
-The following files were removed in v1.1.0 as they were legacy Flask-backend artifacts:
-- `VIDEO_PROCESSING_SETUP.md` — Flask backend setup (removed)
-- `src/hooks/useVideoProcessor.js` — Flask socket.io hook (removed)
-- `src/components/Review/ProcessVideoModal.jsx` — Flask process modal (removed)
-- `src/components/Review/ProcessVideoModal.css` — Flask modal styles (removed)
-- `socket.io-client` npm package — removed from dependencies
+- The `Cred` sheet contains sensitive credentials — ensure your Google Sheet sharing settings are set to **Restricted** (not public).
 
 ---
 

@@ -1,0 +1,277 @@
+/* src/components/Accounts/Accounts.css */
+
+.accounts-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Top Bar ── */
+.accounts-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 4px solid var(--text, #000);
+  padding-bottom: 1rem;
+}
+
+.accounts-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon {
+  background-color: #00d2ff;
+  border: 2px solid var(--text, #000);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 3px 3px 0px var(--text, #000);
+}
+
+.accounts-brand h2 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.accounts-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.stat-divider {
+  width: 2px;
+  height: 24px;
+  background-color: var(--text, #000);
+}
+
+.stat-badge {
+  padding: 0.2rem 0.5rem;
+  border: 2px solid var(--text, #000);
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.stat-badge.total  { background-color: var(--text, #000); }
+.stat-badge.new    { background-color: #00e676; color: #000; }
+.stat-badge.vpend  { background-color: #ffea00; color: #000; }
+.stat-badge.used   { background-color: #f50057; }
+
+/* ── Filter Tabs ── */
+.accounts-filters {
+  display: flex;
+  gap: 1rem;
+}
+
+.filter-btn {
+  background-color: var(--bg, #fff);
+  border: 3px solid var(--text, #000);
+  padding: 0.5rem 1.5rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px var(--text, #000);
+  transition: transform 0.1s, box-shadow 0.1s;
+  display: flex;
+  align-items: center;
+}
+
+.filter-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--text, #000);
+}
+
+.filter-btn.active.all      { background-color: #00d2ff; color: #000; }
+.filter-btn.active.new      { background-color: #00e676; color: #000; }
+.filter-btn.active.vpending { background-color: #ffea00; color: #000; }
+.filter-btn.active.used     { background-color: #f50057; color: #fff; }
+
+/* ── Cards Grid ── */
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ── Card ── */
+.account-card {
+  background-color: var(--bg, #fff);
+  border: 3px solid var(--text, #000);
+  box-shadow: 6px 6px 0px var(--text, #000);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.account-card.editing {
+  border-color: #00d2ff;
+  box-shadow: 6px 6px 0px #00d2ff;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 2px dashed rgba(128,128,128,0.35);
+}
+
+.card-tag {
+  border: 2px solid var(--text, #000);
+  box-shadow: 2px 2px 0px var(--text, #000);
+  padding: 0.2rem 0.6rem;
+  font-weight: 800;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.card-tag.new      { background-color: #00e676; color: #000; }
+.card-tag.verified { background-color: #00d2ff; color: #000; }
+.card-tag.vpend    { background-color: #ffea00; color: #000; }
+.card-tag.used     { background-color: #f50057; color: #fff; }
+.card-tag.default  { background-color: #e0e0e0; color: #000; }
+
+/* Tag select in edit mode */
+.tag-select {
+  border: 2px solid var(--text, #000);
+  background-color: #ffea00;
+  font-weight: 800;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px var(--text, #000);
+  outline: none;
+}
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.credit-badge {
+  border: 2px solid var(--text, #000);
+  box-shadow: 2px 2px 0px var(--text, #000);
+  padding: 0.1rem 0.6rem;
+  font-weight: 900;
+  font-size: 0.85rem;
+  background-color: var(--bg, #fff);
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Credit number input in edit mode */
+.credit-input {
+  border: 2px solid var(--text, #000);
+  box-shadow: 2px 2px 0px #00d2ff;
+  padding: 0.1rem 0.5rem;
+  font-weight: 900;
+  font-size: 0.85rem;
+  width: 70px;
+  text-align: center;
+  background-color: var(--bg, #fff);
+  outline: none;
+}
+
+/* Edit / Save / Cancel buttons */
+.btn-icon-small {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  color: var(--text, #000);
+  border-radius: 2px;
+  transition: background 0.1s;
+}
+
+.btn-icon-small:hover { background-color: rgba(0,0,0,0.07); }
+
+.edit-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.save-btn   { color: #00c853; }
+.cancel-btn { color: #f50057; }
+
+.edit-btn { color: var(--dim, #666); }
+.edit-btn:hover { color: var(--text, #000); }
+
+/* ── Card Body ── */
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--dim, #666);
+  letter-spacing: 0.06em;
+}
+
+/* Shared row box: email row + password row */
+.field-row-box,
+.password-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg, #fff);
+  border: 2px solid var(--text, #000);
+  box-shadow: 3px 3px 0px var(--text, #000);
+  padding-right: 0.5rem;
+}
+
+.form-input.read-only {
+  background-color: transparent;
+  border: none;
+  padding: 0.6rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  color: var(--text, #000);
+  flex: 1;
+  outline: none;
+  min-width: 0;
+}
+
+.password-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--dim, #666);
+}
