@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com;
@@ -15,13 +15,20 @@
         https://upload.googleapis.com
         https://script.google.com
         https://script.googleusercontent.com
-        https://drive.google.com;
+        https://drive.google.com
+        https://*.proxy.google.com;
       img-src 'self' data: https: blob:;
       frame-src https://drive.google.com https://docs.google.com;
       media-src https://drive.google.com blob:;
     " />
     <title>Bright Little Stories – Dashboard</title>
     <meta name="description" content="A sleek, dark-mode dashboard for managing kids' bedtime stories, complete with KPI panels, pipeline tracking, and YouTube publishing." />
+    <!-- Mobile / PWA -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BLS Dashboard" />
+    <meta name="theme-color" content="#0a0a0a" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />

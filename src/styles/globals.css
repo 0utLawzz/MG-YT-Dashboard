@@ -306,17 +306,133 @@ a:hover {
   gap: 1rem;
 }
 
+/* ============================================
+   MOBILE RESPONSIVE — 768px (Tablet)
+   ============================================ */
 @media (max-width: 768px) {
-  .dash-grid {
-    grid-template-columns: 1fr;
+  html { font-size: 15px; }
+
+  /* Grids */
+  .dash-grid      { grid-template-columns: 1fr; }
+  .kpi-grid       { grid-template-columns: repeat(2, 1fr); }
+  .review-grid    { grid-template-columns: 1fr; }
+
+  /* App layout */
+  .app-main {
+    padding: 0.75rem !important;
   }
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
+
+  /* Panels — less padding on mobile */
+  .panel {
+    padding: 0.9rem;
   }
+  /* Disable hover lift on touch devices */
+  .panel:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+  }
+
+  /* Buttons — bigger tap targets */
+  .btn {
+    padding: 0.7rem 1rem;
+    min-height: 44px;
+  }
+  .btn-sm {
+    padding: 0.5rem 0.75rem;
+    min-height: 40px;
+  }
+  .btn:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn:active {
+    transform: scale(0.97);
+    box-shadow: none;
+  }
+
+  /* Inputs — larger on mobile */
+  .input {
+    font-size: 1rem;
+    padding: 0.75rem 0.9rem;
+    min-height: 44px;
+  }
+
+  /* Section titles */
+  .section-title {
+    font-size: 1.1rem !important;
+  }
+
+  /* Form groups stack */
+  .form-group {
+    width: 100%;
+  }
+
+  /* Row layouts become column */
+  .pub-meta-row,
+  .pub-mode-toggle,
+  .schedule-fields,
+  .pub-previews {
+    flex-direction: column !important;
+    gap: 0.75rem;
+  }
+
+  /* Publish stats */
+  .publish-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Settings drawer — full width on mobile */
+  .settings-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Typography */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
 }
 
+/* ============================================
+   MOBILE RESPONSIVE — 480px (Phone)
+   ============================================ */
 @media (max-width: 480px) {
-  .kpi-grid {
-    grid-template-columns: 1fr;
+  html { font-size: 14px; }
+
+  .kpi-grid       { grid-template-columns: 1fr; }
+
+  .app-main {
+    padding: 0.5rem !important;
   }
+
+  .panel {
+    padding: 0.75rem;
+  }
+
+  /* Full-width buttons on small phones */
+  .btn-lg {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Publish stats — 2 col on phone */
+  .publish-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Tabs — icon only, handled in Tabs.css */
+
+  /* Table cells — hide less important columns */
+  .story-table th:nth-child(3),
+  .story-table td:nth-child(3) { display: none; }
+
+  /* Remove side scroll on cards */
+  .pub-list-item {
+    flex-wrap: wrap;
+  }
+
+  h1 { font-size: 1.3rem; }
+  h2 { font-size: 1.1rem; }
 }
+
