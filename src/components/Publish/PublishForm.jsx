@@ -210,18 +210,60 @@ export default function PublishForm({ stories, onSchedule, onPublish }) {
   };
 
   // ============================================
-  // SCHEDULE — save date/time to Sheet
+  // SCHEDULE — upload NOW as private + publishAt
+  // YouTube will auto-publish at the chosen time
+  // No GAS trigger needed, no timeout risk
   // ============================================
   const handleSchedule = async () => {
     if (!selectedId || !scheduleDate || !scheduleTime) return;
+    if (!isAuthenticated) { signIn(); return; }
+    if (!selectedStory?.videoLink) {
+      setPublishError('❌ Video Drive link nahi hai. Storyboard mein add karo pehle.');
+      return;
+    }
+
+    // Build the RFC 3339 publishAt datetime
+    const publishAt = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString();
+
     setSaving(true);
+    setPublishError('');
+    setDone(false);
+    setProgress(0);
+
     try {
-      await onSchedule(selectedId, `${scheduleDate}T${scheduleTime}`);
+      const ytLink = await publishService.publishStory({
+        accessToken,
+        storyId: selectedStory.id,
+        story: selectedStory,
+        customMetadata: {
+          title: seoTitle,
+          description: seoDescription,
+          tags: seoTags.split(',').map(t => t.trim()).filter(Boolean),
+          visibility: 'private',   // private until publishAt
+          publishAt,               // YouTube auto-publishes at this time
+          playlistId: selectedPlaylist,
+          categoryId: '22',
+        },
+        onProgress: (pct, msg) => {
+          setProgress(pct);
+          setProgressMsg(msg || '');
+        },
+      });
+
+      // Save schedule datetime + status to sheet
+      await onSchedule(selectedId, publishAt);
       setDone(true);
+      setProgress(100);
+      setProgressMsg(`✅ Scheduled! YouTube will publish at ${scheduleDate} ${scheduleTime}`);
+
+    } catch (err) {
+      setPublishError('❌ ' + err.message);
+      setProgress(0);
     } finally {
       setSaving(false);
     }
   };
+
 
   // ============================================
   // RETRY failed story
@@ -584,6 +626,9 @@ export default function PublishForm({ stories, onSchedule, onPublish }) {
                   <h4 className="pub-box-title">
                     <Calendar size={14} /> Schedule for Later
                   </h4>
+                  <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
+                    Video abhi upload hogi (private) aur YouTube automatically chosen time pe publish kar dega. No waiting required.
+                  </p>
                   <div className="schedule-fields">
                     <div className="form-group">
                       <label className="form-label" htmlFor="pub-date">Date</label>
@@ -606,16 +651,52 @@ export default function PublishForm({ stories, onSchedule, onPublish }) {
                       />
                     </div>
                   </div>
+
+                  {/* Progress Bar for Schedule upload */}
+                  {saving && (
+                    <div className="pub-progress-wrap">
+                      <div className="pub-progress-bar">
+                        <div
+                          className="pub-progress-fill"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="pub-progress-label">{progressMsg || `${progress}%`}</span>
+                    </div>
+                  )}
+
+                  {publishError && (
+                    <div className="pub-error-msg">{publishError}</div>
+                  )}
+
+                  {done && progressMsg && (
+                    <div style={{ color: 'var(--success, #4ade80)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                      {progressMsg}
+                    </div>
+                  )}
+
                   <button
                     className="btn btn-warning"
                     onClick={handleSchedule}
-                    disabled={saving || !scheduleDate || !scheduleTime}
+                    disabled={saving || done || !scheduleDate || !scheduleTime || !selectedStory?.videoLink}
                   >
                     <Clock size={14} />
-                    {saving ? 'Saving…' : done ? '✅ Scheduled!' : 'Save Schedule'}
+                    {saving ? `⏳ Uploading... ${progress}%` : done ? '✅ Scheduled!' : 'Upload & Schedule'}
                   </button>
+
+                  {!selectedStory?.videoLink && (
+                    <p style={{ color: 'var(--error)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                      ⚠️ Pehle Storyboard mein Video Drive link add karo
+                    </p>
+                  )}
+                  {!isAuthenticated && (
+                    <p style={{ color: 'var(--error)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                      ⚠️ YouTube account connect karo upar se
+                    </p>
+                  )}
                 </div>
               )}
+
             </>
           )}
         </div>

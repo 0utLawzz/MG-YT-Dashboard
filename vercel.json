@@ -1,6 +1,18 @@
 {
     "rewrites": [
         {
+            "source": "/drive-proxy/:path*",
+            "destination": "https://www.googleapis.com/:path*"
+        },
+        {
+            "source": "/yt-upload-proxy/:path*",
+            "destination": "https://www.googleapis.com/:path*"
+        },
+        {
+            "source": "/yt-api-proxy/:path*",
+            "destination": "https://www.googleapis.com/:path*"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
