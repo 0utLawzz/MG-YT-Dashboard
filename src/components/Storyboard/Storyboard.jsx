@@ -93,6 +93,8 @@ export default function Storyboard({
   const [uploadProgress, setUploadProgress] = useState({ video: 0, thumb: 0 });
   const [uploadError, setUploadError] = useState(null);
   const [pickingDrive, setPickingDrive] = useState({ video: false, thumb: false });
+  // Checkbox: whether local file select should upload to Drive
+  const [uploadToDriveEnabled, setUploadToDriveEnabled] = useState(true);
 
   const videoInputRef = useRef(null);
   const thumbInputRef = useRef(null);
@@ -140,6 +142,13 @@ export default function Storyboard({
 
   const handleFileUpload = async (type, file) => {
     if (!file) return;
+
+    // If "Upload to Drive" is disabled, do nothing on file select
+    if (!uploadToDriveEnabled) {
+      alert('"Upload to Drive" is disabled. Enable the checkbox to upload.');
+      return;
+    }
+
     if (!accessToken) {
       alert('Please connect your Google account first');
       return;
@@ -155,22 +164,35 @@ export default function Storyboard({
     setUploadProgress(prev => ({ ...prev, [type]: 0 }));
 
     try {
+      // 1. Upload file to Drive
       const result = await uploadToDrive(file, accessToken, (pct) => {
         setUploadProgress(prev => ({ ...prev, [type]: pct }));
       });
 
+      // 2. Set permissions so it's accessible
       const permResult = await setDriveFilePermissions(result.fileId, accessToken);
       if (!permResult) {
         throw new Error('Failed to set file permissions - file may not be accessible');
       }
 
+      // 3. Update local state
+      const shareLink = result.shareLink;
       if (type === 'video') {
-        setVideoLink(result.shareLink);
+        setVideoLink(shareLink);
       } else {
-        setThumbLink(result.shareLink);
+        setThumbLink(shareLink);
       }
 
-      alert(`${type === 'video' ? 'Video' : 'Thumbnail'} uploaded successfully!`);
+      // 4. Immediately write URL to sheet — do NOT change status
+      if (story?.id) {
+        const updates = type === 'video'
+          ? { videoLink: shareLink }
+          : { thumbLink: shareLink };
+        await onEdit(story.id, updates);
+      }
+
+      setSavedAssets(true);
+      setTimeout(() => setSavedAssets(false), 2000);
     } catch (err) {
       console.error('[Storyboard] Upload failed:', err);
       setUploadError(`${type} upload failed: ${err.message}`);
@@ -197,10 +219,21 @@ export default function Storyboard({
       const shareUrl = await openDrivePicker({ accessToken, apiKey, mimeTypes });
 
       if (shareUrl) {
+        // Update local state
         if (type === 'video') {
           setVideoLink(shareUrl);
         } else {
           setThumbLink(shareUrl);
+        }
+
+        // Immediately write URL to sheet — do NOT change status
+        if (story?.id) {
+          const updates = type === 'video'
+            ? { videoLink: shareUrl }
+            : { thumbLink: shareUrl };
+          await onEdit(story.id, updates);
+          setSavedAssets(true);
+          setTimeout(() => setSavedAssets(false), 2000);
         }
       }
     } catch (err) {
@@ -232,21 +265,11 @@ export default function Storyboard({
       if (videoLink) updates.videoLink = videoLink;
       if (thumbLink) updates.thumbLink = thumbLink;
 
-      // Both limits present implies fully uploaded
-      const bothPresent = !!(videoLink && thumbLink);
-
-      // Save links
+      // ONLY save the links — do NOT change dashStatus or route to Review
       await onEdit(story.id, updates);
 
-      // Auto route to Review
-      if (bothPresent) {
-        await onMoveToReview(story.id);
-        // Story is no longer in "storyboard" state so deselect 
-        onSelectStory(null);
-      } else {
-        setSavedAssets(true);
-        setTimeout(() => setSavedAssets(false), 2000);
-      }
+      setSavedAssets(true);
+      setTimeout(() => setSavedAssets(false), 2000);
     } catch (err) {
       console.error(err);
       alert("Failed saving assets: " + err.message);
@@ -360,9 +383,22 @@ export default function Storyboard({
           {/* ASSET UPLOADING EMBED */}
           <div className="sb-notes panel" style={{ border: "1px solid var(--accent2)" }}>
             <h4 className="sb-card-title" style={{ color: "var(--accent2)" }}>🎬 Attach Drive Assets</h4>
-            <p className="section-desc" style={{marginBottom: "1rem"}}>
-              Paste Google Drive URLs, pick directly from Drive, or upload a local file. Saving BOTH automatically routes story to Review Tab.
+            <p className="section-desc" style={{marginBottom: "0.75rem"}}>
+              Paste Google Drive URLs, pick directly from Drive, or upload a local file. URLs are saved to the sheet immediately — status is not changed.
             </p>
+            {/* Upload to Drive toggle */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              <input
+                type="checkbox"
+                checked={uploadToDriveEnabled}
+                onChange={e => setUploadToDriveEnabled(e.target.checked)}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <span>📤 Upload to Drive on file select</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--dimmer)' }}>
+                (uncheck to skip Drive upload — just paste/pick a URL)
+              </span>
+            </label>
 
             {/* Video Link */}
             <div className="form-group">
