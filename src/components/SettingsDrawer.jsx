@@ -5,13 +5,13 @@ import { useTheme } from '../context/ThemeContext'; // Theme switcher ke liye
 import './SettingsDrawer.css';
 
 const DEFAULT_CONFIG = {
-  apiUrl: '',
   sheetUrl: '',
   googleClientId: '',
   driveFolderId: '',
   youtubeChannelId: 'UC2FdFOP-XrLFlWN9VJWmYWQ',
   youtubePlaylistId: '',
 };
+
 
 export default function SettingsDrawer({ open, onClose }) {
   const { theme, setTheme } = useTheme(); // current theme aur setter
@@ -93,18 +93,8 @@ export default function SettingsDrawer({ open, onClose }) {
             ))}
           </div>
 
+
           <h4 style={{ margin: "0.5rem 0", color: "var(--accent2)" }}>Endpoints</h4>
-          
-          <div className="form-group">
-            <label className="form-label" htmlFor="cfg-api-url">API Base URL</label>
-            <input
-              className="input"
-              id="cfg-api-url"
-              value={config.apiUrl}
-              onChange={e => handleChange('apiUrl', e.target.value)}
-              placeholder="https://your-api.vercel.app"
-            />
-          </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="cfg-sheet-url">Google Sheet Script URL</label>
@@ -116,6 +106,7 @@ export default function SettingsDrawer({ open, onClose }) {
               placeholder="https://script.google.com/macros/s/..."
             />
           </div>
+
 
           <h4 style={{ margin: "1rem 0 0.5rem 0", color: "var(--accent3)" }}>Google Identity & Drive</h4>
 

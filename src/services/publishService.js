@@ -12,16 +12,13 @@
 import { updateStory } from '../lib/api';
 import { ENV } from '../lib/config/env';
 
-// ─── Dev / Prod Detection ─────────────────────────────────────────────────────
-// Localhost pe Vite proxy use karo (CORS fix)
-// Production pe direct googleapis.com (CORS already allowed)
-const IS_DEV = window.location.hostname === 'localhost'
-            || window.location.hostname === '127.0.0.1';
+// ── API Base URLs ────────────────────────────────────────────────
+// Always use relative proxy paths — both Vite (dev) and Vercel (prod)
+// have these proxy routes configured, so this works everywhere.
+const DRIVE_BASE     = '/drive-proxy/drive/v3';
+const YT_UPLOAD_BASE = '/yt-upload-proxy/upload/youtube/v3';
+const YT_API_BASE    = '/yt-api-proxy/youtube/v3';
 
-// ─── API Base URLs ────────────────────────────────────────────────────────────
-const DRIVE_BASE     = IS_DEV ? '/drive-proxy/drive/v3'               : 'https://www.googleapis.com/drive/v3';
-const YT_UPLOAD_BASE = IS_DEV ? '/yt-upload-proxy/upload/youtube/v3'  : 'https://www.googleapis.com/upload/youtube/v3';
-const YT_API_BASE    = IS_DEV ? '/yt-api-proxy/youtube/v3'            : 'https://www.googleapis.com/youtube/v3';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -227,7 +224,7 @@ async function youtubeResumableUpload(accessToken, videoBlob, metadata, onProgre
   throw new Error('Upload loop ended without video ID');
 }
 
-// ─── STEP 4: Thumbnail Upload ─────────────────────────────────────────────────
+// ─ STEP 4: Thumbnail Upload ─────────────────────────────────────────
 // youtube.force-ssl scope required for this
 async function uploadYouTubeThumbnail(accessToken, videoId, thumbnailBlob) {
   if (!thumbnailBlob) {
@@ -235,27 +232,34 @@ async function uploadYouTubeThumbnail(accessToken, videoId, thumbnailBlob) {
     return;
   }
 
-  const res = await fetch(
-    `${YT_UPLOAD_BASE}/thumbnails/set?videoId=${videoId}&uploadType=media`,
-    {
-      method:  'POST',
-      headers: {
-        Authorization:  `Bearer ${accessToken}`,
-        'Content-Type': thumbnailBlob.type || 'image/jpeg',
-      },
-      body: thumbnailBlob,
-    }
-  );
+  // Wrap entirely in try-catch so ANY failure (CORS, network, API)
+  // is truly non-fatal — video is already uploaded at this point
+  try {
+    const res = await fetch(
+      `${YT_UPLOAD_BASE}/thumbnails/set?videoId=${videoId}&uploadType=media`,
+      {
+        method:  'POST',
+        headers: {
+          Authorization:  `Bearer ${accessToken}`,
+          'Content-Type': thumbnailBlob.type || 'image/jpeg',
+        },
+        body: thumbnailBlob,
+      }
+    );
 
-  if (!res.ok) {
-    // Thumbnail failure is non-fatal — video upload ho gaya
-    const err = await res.json().catch(() => ({}));
-    console.warn('[PublishService] Thumbnail upload failed (non-fatal):', res.status,
-      err?.error?.message || '');
-  } else {
-    console.log('[PublishService] ✅ Thumbnail uploaded');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.warn('[PublishService] Thumbnail upload failed (non-fatal):', res.status,
+        err?.error?.message || '');
+    } else {
+      console.log('[PublishService] ✅ Thumbnail uploaded');
+    }
+  } catch (thumbFetchErr) {
+    // Network / CORS error on thumbnail — log only, never throw
+    console.warn('[PublishService] Thumbnail fetch error (non-fatal):', thumbFetchErr.message);
   }
 }
+
 
 // ─── STEP 5: Add to Playlist ──────────────────────────────────────────────────
 async function addToPlaylist(accessToken, videoId, playlistId) {
