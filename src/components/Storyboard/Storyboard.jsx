@@ -265,8 +265,13 @@ export default function Storyboard({
       if (videoLink) updates.videoLink = videoLink;
       if (thumbLink) updates.thumbLink = thumbLink;
 
-      // ONLY save the links — do NOT change dashStatus or route to Review
+      // Save the links
       await onEdit(story.id, updates);
+
+      // If both links are provided, move the story to Review automatically
+      if (videoLink && thumbLink && onMoveToReview) {
+        await onMoveToReview(story.id);
+      }
 
       setSavedAssets(true);
       setTimeout(() => setSavedAssets(false), 2000);
